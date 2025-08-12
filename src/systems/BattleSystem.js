@@ -1,61 +1,67 @@
 // src/systems/BattleSystem.js
-import UIManager from '../ui/UIManager.js';
 
 class BattleSystem {
-  constructor(player, enemy, gameManager) {
+  // 修改 constructor 來接收 uiManager
+  constructor(player, enemy, gameManager, uiManager) {
     this.player = player;
     this.enemy = enemy;
     this.gameManager = gameManager;
-    this.frameCount = 0;
-    this.isActive = true;
-    this.uiManager = new UIManager();
+    this.isActive = false;
+    this.uiManager = uiManager; // 使用從 GameManager 傳入的實例
   }
 
   start() {
-    const loop = () => {
+    this.isActive = true;
+    this.uiManager.updateRound(this.gameManager.currentLevel);
+    this.uiManager.addLogEntry(`⚔️ Combat begins!`);
+
+    const loop = (timestamp) => {
       if (!this.isActive) return;
       this.tick();
       this.uiManager.drawBattle(this.player, this.enemy);
       requestAnimationFrame(loop);
     };
-    loop();
+    requestAnimationFrame(loop);
   }
 
   tick() {
+    // 只有在戰鬥進行中才增加 frame
+    if(!this.isActive) return;
+
     this.player.currentFrame++;
     this.enemy.currentFrame++;
 
+    // 玩家攻擊
     if (this.player.currentFrame >= this.player.attackFrame) {
-      if (typeof this.player.attack !== 'function') {
-        console.error('Player attack is not a function:', this.player);
-        this.isActive = false;
-        return;
-      }
-      const dmg = this.player.attack();
-      console.log(`Player deals ${dmg} damage`); // 診斷
-      if (this.enemy.takeDamage(dmg)) {
-        this.isActive = false;
-        this.gameManager.endBattle(true);
-      }
       this.player.currentFrame = 0;
-      this.uiManager.showDamage(dmg, this.player.critChance > Math.random(), false);
+      const dmg = this.player.attack(); // 傷害在 Player 內部計算
+      const isCrit = Math.random() < this.player.critChance;
+      const finalDmg = isCrit ? dmg * 2 : dmg; // 假設暴擊兩倍
+
+      this.uiManager.showDamage(finalDmg, isCrit, false);
+      this.uiManager.addLogEntry(`Player deals ${finalDmg.toFixed(1)} ${isCrit ? 'CRIT' : ''} damage!`);
+      
+      if (this.enemy.takeDamage(finalDmg)) { // takeDamage 回傳是否死亡
+        this.isActive = false;
+        this.uiManager.addLogEntry('🏆 Player Wins!');
+        setTimeout(() => this.gameManager.endBattle(true), 1500); // 延遲一點結束，讓動畫跑完
+      }
     }
 
-    if (this.enemy.currentFrame >= this.enemy.attackFrame && this.isActive) {
-      if (typeof this.enemy.attack !== 'function') {
-        console.error('Enemy attack is not a function:', this.enemy);
-        this.isActive = false;
-        return;
-      }
+    // 敵人攻擊 (如果玩家攻擊後還活著)
+    if (this.isActive && this.enemy.currentFrame >= this.enemy.attackFrame) {
+      this.enemy.currentFrame = 0;
       const rawDmg = this.enemy.attack();
-      const finalDmg = this.player.takeDamage(rawDmg);
-      console.log(`Enemy deals ${finalDmg} damage`); // 診斷
+      const finalDmg = this.player.takeDamage(rawDmg); // 傷害在 Player 內部計算
+
+      this.uiManager.showDamage(finalDmg, false, true);
+      this.uiManager.addLogEntry(`Enemy deals ${finalDmg.toFixed(1)} damage.`, true);
+
       if (this.player.hp <= 0) {
         this.isActive = false;
-        this.gameManager.endBattle(false);
+        this.uiManager.addLogEntry('Player is defeated...');
+        setTimeout(() => this.gameManager.endBattle(false), 1500);
       }
-      this.enemy.currentFrame = 0;
-      this.uiManager.showDamage(finalDmg, false, true);
     }
   }
 }

@@ -345,6 +345,99 @@
             50% { opacity: 1; }
             100% { opacity: 0; }
         }
+
+        /* Level up modal */
+        .level-up-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .level-up-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 2px solid #4ecdc4;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .level-up-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #4ecdc4;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(78, 205, 196, 0.5);
+        }
+
+        .stat-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-option {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        .stat-option:hover {
+            border-color: #4ecdc4;
+            background: rgba(78, 205, 196, 0.2);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(78, 205, 196, 0.3);
+        }
+
+        .stat-option-icon {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .stat-option-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-option-boost {
+            font-size: 14px;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .continue-btn {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            border: none;
+            border-radius: 15px;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(78, 205, 196, 0.3);
+        }
+
+        .continue-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(78, 205, 196, 0.5);
+        }
     </style>
 </head>
 <body>
@@ -352,7 +445,7 @@
     
     <div class="combat-arena">
         <div class="round-header">
-            <div class="round-counter">Round 7 / 20</div>
+            <div class="round-counter" id="roundCounter">Round 1 / 20</div>
         </div>
         
         <div class="combat-container">
@@ -362,8 +455,8 @@
                 
                 <div class="health-container">
                     <div class="health-bar">
-                        <div class="health-fill" style="width: 84%"></div>
-                        <div class="health-text">128 / 152</div>
+                        <div class="health-fill" id="heroHealthBar" style="width: 100%"></div>
+                        <div class="health-text" id="heroHealthText">100 / 100</div>
                     </div>
                 </div>
                 
@@ -381,8 +474,8 @@
                 
                 <div class="health-container">
                     <div class="health-bar">
-                        <div class="health-fill" style="width: 48%"></div>
-                        <div class="health-text">80 / 168</div>
+                        <div class="health-fill" id="enemyHealthBar" style="width: 100%"></div>
+                        <div class="health-text" id="enemyHealthText">80 / 80</div>
                     </div>
                 </div>
                 
@@ -431,175 +524,13 @@
         <div class="log-title">⚡ Combat Log</div>
     </div>
     
-    <script>
-        // Create floating background particles
-        function createParticles() {
-            const container = document.querySelector('.bg-particles');
-            for (let i = 0; i < 50; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                particle.style.left = Math.random() * 100 + '%';
-                particle.style.top = Math.random() * 100 + '%';
-                particle.style.width = Math.random() * 4 + 2 + 'px';
-                particle.style.height = particle.style.width;
-                particle.style.animationDelay = Math.random() * 6 + 's';
-                particle.style.animationDuration = (Math.random() * 4 + 4) + 's';
-                container.appendChild(particle);
-            }
-        }
 
-        // Game state
-        const gameState = {
-            hero: { hp: 128, maxHp: 152, attack: 22, defense: 23, speed: 0.5, critRate: 15 },
-            enemy: { hp: 80, maxHp: 168, attack: 17, defense: 4, speed: 0.4, critRate: 10 }
-        };
-
-        // Update health bars
-        function updateHealthBars() {
-            const heroBar = document.querySelector('.hero .health-fill');
-            const enemyBar = document.querySelector('.enemy .health-fill');
-            const heroText = document.querySelector('.hero .health-text');
-            const enemyText = document.querySelector('.enemy .health-text');
-            
-            const heroPercent = (gameState.hero.hp / gameState.hero.maxHp) * 100;
-            const enemyPercent = (gameState.enemy.hp / gameState.enemy.maxHp) * 100;
-            
-            heroBar.style.width = heroPercent + '%';
-            enemyBar.style.width = enemyPercent + '%';
-            
-            heroText.textContent = `${gameState.hero.hp} / ${gameState.hero.maxHp}`;
-            enemyText.textContent = `${gameState.enemy.hp} / ${gameState.enemy.maxHp}`;
-        }
-
-        // Calculate actual damage
-        function calculateDamage(attacker, defender) {
-            let damage = attacker.attack - defender.defense;
-            damage = Math.max(1, damage); // Minimum 1 damage
-            
-            // Check for critical hit
-            if (Math.random() * 100 < attacker.critRate) {
-                damage = Math.floor(damage * 1.5);
-                return { damage, isCrit: true };
-            }
-            
-            return { damage, isCrit: false };
-        }
-
-        // Add combat log entry
-        function addLogEntry(message, isEnemy = false) {
-            const log = document.querySelector('.combat-log');
-            const entry = document.createElement('div');
-            entry.className = `log-entry ${isEnemy ? 'enemy' : ''}`;
-            entry.textContent = message;
-            log.appendChild(entry);
-            
-            // Auto-scroll to bottom
-            log.scrollTop = log.scrollHeight;
-            
-            // Remove old entries if too many
-            const entries = log.querySelectorAll('.log-entry');
-            if (entries.length > 10) {
-                entries[0].remove();
-            }
-        }
-
-        // Simulate combat actions
-        function simulateDamage(target, isPlayerAttack = true) {
-            const attacker = isPlayerAttack ? gameState.hero : gameState.enemy;
-            const defender = isPlayerAttack ? gameState.enemy : gameState.hero;
-            
-            const result = calculateDamage(attacker, defender);
-            defender.hp = Math.max(0, defender.hp - result.damage);
-            
-            // Visual damage indicator
-            const card = document.querySelector(`.character-card.${target}`);
-            const damageIndicator = document.createElement('div');
-            damageIndicator.className = 'damage-indicator';
-            damageIndicator.textContent = result.isCrit ? `CRIT! -${result.damage}` : `-${result.damage}`;
-            damageIndicator.style.top = '30%';
-            damageIndicator.style.left = '50%';
-            if (result.isCrit) {
-                damageIndicator.style.color = '#ff1744';
-                damageIndicator.style.fontSize = '28px';
-            }
-            card.appendChild(damageIndicator);
-            
-            // Update health bars
-            updateHealthBars();
-            
-            // Add to combat log
-            const attackerName = isPlayerAttack ? 'You' : 'Enemy';
-            const logMessage = result.isCrit ? 
-                `${attackerName} deal CRITICAL ${result.damage} damage!` :
-                `${attackerName} deal ${result.damage} damage (${attacker.attack} attack - ${defender.defense} defense)`;
-            addLogEntry(logMessage, !isPlayerAttack);
-            
-            // Screen shake effect
-            document.body.classList.add('screen-shake');
-            setTimeout(() => {
-                document.body.classList.remove('screen-shake');
-            }, 300);
-            
-            // Flash effect
-            const flash = document.createElement('div');
-            flash.className = 'flash-effect';
-            document.body.appendChild(flash);
-            setTimeout(() => {
-                flash.remove();
-            }, 200);
-            
-            // Remove damage indicator after animation
-            setTimeout(() => {
-                damageIndicator.remove();
-            }, 1500);
-            
-            // Check for death
-            if (defender.hp <= 0) {
-                const winner = isPlayerAttack ? 'Hero' : 'Enemy';
-                addLogEntry(`🏆 ${winner} wins!`);
-            }
-        }
-
-        // Animate attack progress bars and handle combat
-        function animateAttackBars() {
-            const heroBar = document.querySelector('.hero .attack-fill');
-            const enemyBar = document.querySelector('.enemy .attack-fill');
-            
-            let heroProgress = 75;
-            let enemyProgress = 30;
-            
-            const gameLoop = setInterval(() => {
-                // Stop if anyone is dead
-                if (gameState.hero.hp <= 0 || gameState.enemy.hp <= 0) {
-                    clearInterval(gameLoop);
-                    return;
-                }
-                
-                heroProgress += gameState.hero.speed * 10;
-                enemyProgress += gameState.enemy.speed * 10;
-                
-                heroBar.style.width = Math.min(heroProgress, 100) + '%';
-                enemyBar.style.width = Math.min(enemyProgress, 100) + '%';
-                
-                // Execute attacks when bars are full
-                if (heroProgress >= 100) {
-                    setTimeout(() => simulateDamage('enemy', true), 200);
-                    heroProgress = 0;
-                }
-                if (enemyProgress >= 100) {
-                    setTimeout(() => simulateDamage('hero', false), 200);
-                    enemyProgress = 0;
-                }
-            }, 200);
-        }
-
-        // Initialize effects
-        createParticles();
-        updateHealthBars(); // Set initial health bars
-        setTimeout(animateAttackBars, 1000);
-        
-        // Initial combat log
-        addLogEntry("⚔️ Combat begins!");
-    </script>
+<body>
+    <div class="bg-particles"></div>
+    
+    <div class="combat-arena">
+        </div>
+    
+    <script type="module" src="./main.js"></script>
 </body>
 </html>
