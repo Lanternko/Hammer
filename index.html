@@ -1,11 +1,605 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Roguelike Numerical Showdown</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Combat Arena</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated background particles */
+        .bg-particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.3; }
+            50% { transform: translateY(-20px) rotate(180deg); opacity: 0.6; }
+        }
+
+        .combat-arena {
+            position: relative;
+            z-index: 1;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        /* Header */
+        .round-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .round-counter {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+            display: inline-block;
+        }
+
+        /* Main combat area */
+        .combat-container {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 50px;
+            position: relative;
+        }
+
+        /* Character cards */
+        .character-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 25px;
+            width: 320px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .character-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .character-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .hero .character-name {
+            color: #4ecdc4;
+        }
+
+        .enemy .character-name {
+            color: #ff6b6b;
+        }
+
+        /* Health bars */
+        .health-container {
+            margin-bottom: 20px;
+        }
+
+        .health-bar {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            height: 25px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .health-fill {
+            height: 100%;
+            border-radius: 15px;
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero .health-fill {
+            background: linear-gradient(90deg, #4ecdc4, #44a08d);
+            box-shadow: 0 0 20px rgba(78, 205, 196, 0.5);
+        }
+
+        .enemy .health-fill {
+            background: linear-gradient(90deg, #ff6b6b, #ee5a24);
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+        }
+
+        .health-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: shine 2s infinite;
+        }
+
+        @keyframes shine {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .health-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+        }
+
+        /* Attack progress bars */
+        .attack-progress {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            height: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .attack-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffd700, #ffb347);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        /* Combat effects */
+        .vs-indicator {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+        }
+
+        /* Damage indicators */
+        .damage-indicator {
+            position: absolute;
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff4757;
+            text-shadow: 0 0 10px rgba(255, 71, 87, 0.8);
+            animation: damageFloat 1.5s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes damageFloat {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(0.5);
+            }
+            50% {
+                transform: translateY(-30px) scale(1.2);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-60px) scale(1);
+            }
+        }
+
+        /* Stats panel */
+        .stats-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            color: white;
+            min-width: 250px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .stats-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #4ecdc4;
+            border-bottom: 1px solid rgba(78, 205, 196, 0.3);
+            padding-bottom: 8px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .stat-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            opacity: 0.8;
+        }
+
+        .stat-label {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        /* Combat log */
+        .combat-log {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            color: white;
+            width: 300px;
+            height: 200px;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .log-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #ff6b6b;
+            border-bottom: 1px solid rgba(255, 107, 107, 0.3);
+            padding-bottom: 8px;
+        }
+
+        .log-entry {
+            font-size: 13px;
+            margin-bottom: 8px;
+            padding: 5px 8px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 3px solid #4ecdc4;
+        }
+
+        .log-entry.enemy {
+            border-left-color: #ff6b6b;
+        }
+
+        /* Screen effects */
+        .screen-shake {
+            animation: shake 0.3s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .flash-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.3);
+            opacity: 0;
+            pointer-events: none;
+            animation: flash 0.2s ease-out;
+        }
+
+        @keyframes flash {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+    </style>
 </head>
 <body>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    <script type="module" src="main.js"></script>
+    <div class="bg-particles"></div>
+    
+    <div class="combat-arena">
+        <div class="round-header">
+            <div class="round-counter">Round 7 / 20</div>
+        </div>
+        
+        <div class="combat-container">
+            <!-- Hero Character -->
+            <div class="character-card hero">
+                <div class="character-name">🛡️ Giant Hero</div>
+                
+                <div class="health-container">
+                    <div class="health-bar">
+                        <div class="health-fill" style="width: 84%"></div>
+                        <div class="health-text">128 / 152</div>
+                    </div>
+                </div>
+                
+                <div class="attack-progress">
+                    <div class="attack-fill" style="width: 75%"></div>
+                </div>
+            </div>
+            
+            <!-- VS Indicator -->
+            <div class="vs-indicator">⚔️</div>
+            
+            <!-- Enemy Character -->
+            <div class="character-card enemy">
+                <div class="character-name">👹 Balanced Enemy</div>
+                
+                <div class="health-container">
+                    <div class="health-bar">
+                        <div class="health-fill" style="width: 48%"></div>
+                        <div class="health-text">80 / 168</div>
+                    </div>
+                </div>
+                
+                <div class="attack-progress">
+                    <div class="attack-fill" style="width: 30%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Panel -->
+    <div class="stats-panel">
+        <div class="stats-title">⚡ Hero Stats</div>
+        <div class="stat-row">
+            <div class="stat-label">
+                <span>⚔️</span>
+                Attack
+            </div>
+            <div class="stat-value">22.0</div>
+        </div>
+        <div class="stat-row">
+            <div class="stat-label">
+                <span>⚡</span>
+                Speed
+            </div>
+            <div class="stat-value">0.50</div>
+        </div>
+        <div class="stat-row">
+            <div class="stat-label">
+                <span>🛡️</span>
+                Defense
+            </div>
+            <div class="stat-value">23.0</div>
+        </div>
+        <div class="stat-row">
+            <div class="stat-label">
+                <span>💥</span>
+                Crit Rate
+            </div>
+            <div class="stat-value">15%</div>
+        </div>
+    </div>
+    
+    <!-- Combat Log -->
+    <div class="combat-log">
+        <div class="log-title">⚡ Combat Log</div>
+    </div>
+    
+    <script>
+        // Create floating background particles
+        function createParticles() {
+            const container = document.querySelector('.bg-particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.width = Math.random() * 4 + 2 + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.animationDelay = Math.random() * 6 + 's';
+                particle.style.animationDuration = (Math.random() * 4 + 4) + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        // Game state
+        const gameState = {
+            hero: { hp: 128, maxHp: 152, attack: 22, defense: 23, speed: 0.5, critRate: 15 },
+            enemy: { hp: 80, maxHp: 168, attack: 17, defense: 4, speed: 0.4, critRate: 10 }
+        };
+
+        // Update health bars
+        function updateHealthBars() {
+            const heroBar = document.querySelector('.hero .health-fill');
+            const enemyBar = document.querySelector('.enemy .health-fill');
+            const heroText = document.querySelector('.hero .health-text');
+            const enemyText = document.querySelector('.enemy .health-text');
+            
+            const heroPercent = (gameState.hero.hp / gameState.hero.maxHp) * 100;
+            const enemyPercent = (gameState.enemy.hp / gameState.enemy.maxHp) * 100;
+            
+            heroBar.style.width = heroPercent + '%';
+            enemyBar.style.width = enemyPercent + '%';
+            
+            heroText.textContent = `${gameState.hero.hp} / ${gameState.hero.maxHp}`;
+            enemyText.textContent = `${gameState.enemy.hp} / ${gameState.enemy.maxHp}`;
+        }
+
+        // Calculate actual damage
+        function calculateDamage(attacker, defender) {
+            let damage = attacker.attack - defender.defense;
+            damage = Math.max(1, damage); // Minimum 1 damage
+            
+            // Check for critical hit
+            if (Math.random() * 100 < attacker.critRate) {
+                damage = Math.floor(damage * 1.5);
+                return { damage, isCrit: true };
+            }
+            
+            return { damage, isCrit: false };
+        }
+
+        // Add combat log entry
+        function addLogEntry(message, isEnemy = false) {
+            const log = document.querySelector('.combat-log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${isEnemy ? 'enemy' : ''}`;
+            entry.textContent = message;
+            log.appendChild(entry);
+            
+            // Auto-scroll to bottom
+            log.scrollTop = log.scrollHeight;
+            
+            // Remove old entries if too many
+            const entries = log.querySelectorAll('.log-entry');
+            if (entries.length > 10) {
+                entries[0].remove();
+            }
+        }
+
+        // Simulate combat actions
+        function simulateDamage(target, isPlayerAttack = true) {
+            const attacker = isPlayerAttack ? gameState.hero : gameState.enemy;
+            const defender = isPlayerAttack ? gameState.enemy : gameState.hero;
+            
+            const result = calculateDamage(attacker, defender);
+            defender.hp = Math.max(0, defender.hp - result.damage);
+            
+            // Visual damage indicator
+            const card = document.querySelector(`.character-card.${target}`);
+            const damageIndicator = document.createElement('div');
+            damageIndicator.className = 'damage-indicator';
+            damageIndicator.textContent = result.isCrit ? `CRIT! -${result.damage}` : `-${result.damage}`;
+            damageIndicator.style.top = '30%';
+            damageIndicator.style.left = '50%';
+            if (result.isCrit) {
+                damageIndicator.style.color = '#ff1744';
+                damageIndicator.style.fontSize = '28px';
+            }
+            card.appendChild(damageIndicator);
+            
+            // Update health bars
+            updateHealthBars();
+            
+            // Add to combat log
+            const attackerName = isPlayerAttack ? 'You' : 'Enemy';
+            const logMessage = result.isCrit ? 
+                `${attackerName} deal CRITICAL ${result.damage} damage!` :
+                `${attackerName} deal ${result.damage} damage (${attacker.attack} attack - ${defender.defense} defense)`;
+            addLogEntry(logMessage, !isPlayerAttack);
+            
+            // Screen shake effect
+            document.body.classList.add('screen-shake');
+            setTimeout(() => {
+                document.body.classList.remove('screen-shake');
+            }, 300);
+            
+            // Flash effect
+            const flash = document.createElement('div');
+            flash.className = 'flash-effect';
+            document.body.appendChild(flash);
+            setTimeout(() => {
+                flash.remove();
+            }, 200);
+            
+            // Remove damage indicator after animation
+            setTimeout(() => {
+                damageIndicator.remove();
+            }, 1500);
+            
+            // Check for death
+            if (defender.hp <= 0) {
+                const winner = isPlayerAttack ? 'Hero' : 'Enemy';
+                addLogEntry(`🏆 ${winner} wins!`);
+            }
+        }
+
+        // Animate attack progress bars and handle combat
+        function animateAttackBars() {
+            const heroBar = document.querySelector('.hero .attack-fill');
+            const enemyBar = document.querySelector('.enemy .attack-fill');
+            
+            let heroProgress = 75;
+            let enemyProgress = 30;
+            
+            const gameLoop = setInterval(() => {
+                // Stop if anyone is dead
+                if (gameState.hero.hp <= 0 || gameState.enemy.hp <= 0) {
+                    clearInterval(gameLoop);
+                    return;
+                }
+                
+                heroProgress += gameState.hero.speed * 10;
+                enemyProgress += gameState.enemy.speed * 10;
+                
+                heroBar.style.width = Math.min(heroProgress, 100) + '%';
+                enemyBar.style.width = Math.min(enemyProgress, 100) + '%';
+                
+                // Execute attacks when bars are full
+                if (heroProgress >= 100) {
+                    setTimeout(() => simulateDamage('enemy', true), 200);
+                    heroProgress = 0;
+                }
+                if (enemyProgress >= 100) {
+                    setTimeout(() => simulateDamage('hero', false), 200);
+                    enemyProgress = 0;
+                }
+            }, 200);
+        }
+
+        // Initialize effects
+        createParticles();
+        updateHealthBars(); // Set initial health bars
+        setTimeout(animateAttackBars, 1000);
+        
+        // Initial combat log
+        addLogEntry("⚔️ Combat begins!");
+    </script>
 </body>
 </html>
