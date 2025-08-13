@@ -1,4 +1,4 @@
-// src/game/Player.js - 升級版
+// src/game/Player.js - 修復版
 class Player {
   constructor() {
     this.hp = 100;
@@ -254,3 +254,6 @@ class Player {
     };
   }
 }
+
+// 🔥 IMPORTANT: 確保這是正確的 default export
+export default Player;

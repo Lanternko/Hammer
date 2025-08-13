@@ -1,4 +1,4 @@
-// src/systems/BattleSystem.js - 升級版
+// src/systems/BattleSystem.js - 簡化版
 class BattleSystem {
   constructor(player, enemy, gameManager) {
     this.player = player;
@@ -13,7 +13,6 @@ class BattleSystem {
   start() {
     console.log('戰鬥開始');
     this.isActive = true;
-    this.updateUIElements();
     this.loop();
   }
 
@@ -29,7 +28,6 @@ class BattleSystem {
     if (!this.isActive) return;
     
     this.tick();
-    this.updateUIElements();
     
     this.animationId = requestAnimationFrame(() => this.loop());
   }
@@ -66,6 +64,7 @@ class BattleSystem {
 
     // 更新UI
     this.gameManager.updatePlayerStats();
+    this.updateEnemyDisplay();
   }
 
   processPlayerAttack() {
@@ -85,8 +84,6 @@ class BattleSystem {
       console.log('😵 敵人被重錘眩暈！');
     }
     
-    this.showDamage(reducedDmg, isCrit, isHammerProc, false);
-    
     if (this.enemy.hp <= 0) {
       console.log('敵人被擊敗！');
       this.isActive = false;
@@ -104,7 +101,6 @@ class BattleSystem {
     this.player.hp = Math.max(0, this.player.hp - finalDmg);
     
     console.log(`敵人攻擊造成 ${finalDmg.toFixed(1)} 傷害`);
-    this.showDamage(finalDmg, false, false, true);
     
     if (this.player.hp <= 0) {
       console.log('玩家被擊敗！');
@@ -114,7 +110,7 @@ class BattleSystem {
     }
   }
 
-  updateUIElements() {
+  updateEnemyDisplay() {
     // 更新敵人名稱和血量
     const enemyName = document.querySelector('.enemy .character-name');
     if (enemyName && this.enemy) {
@@ -160,113 +156,6 @@ class BattleSystem {
         const attackPercent = (this.enemy.currentFrame / this.enemy.attackFrame) * 100;
         enemyAttackFill.style.width = `${attackPercent}%`;
       }
-    }
-
-    // 更新玩家狀態效果顯示
-    this.updateStatusEffectsDisplay();
-  }
-
-  updateStatusEffectsDisplay() {
-    // 在統計面板下方顯示狀態效果
-    let statusPanel = document.querySelector('.status-effects');
-    if (!statusPanel) {
-      statusPanel = document.createElement('div');
-      statusPanel.className = 'status-effects';
-      statusPanel.style.cssText = `
-        position: fixed;
-        bottom: 240px;
-        left: 20px;
-        background: rgba(0, 0, 0, 0.8);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 10px;
-        padding: 10px;
-        color: white;
-        min-width: 250px;
-        font-size: 12px;
-      `;
-      document.body.appendChild(statusPanel);
-    }
-
-    const statusEffects = this.player.getStatusInfo();
-    if (statusEffects.length > 0) {
-      statusPanel.innerHTML = `
-        <div style="color: #4ecdc4; font-weight: bold; margin-bottom: 5px;">狀態效果:</div>
-        ${statusEffects.map(effect => `<div style="margin-bottom: 2px;">${effect}</div>`).join('')}
-      `;
-      statusPanel.style.display = 'block';
-    } else {
-      statusPanel.style.display = 'none';
-    }
-  }
-
-  showDamage(value, isCrit, isHammerProc, isEnemy) {
-    const targetCard = document.querySelector(isEnemy ? '.hero .character-card' : '.enemy .character-card');
-    if (!targetCard) return;
-
-    const damageIndicator = document.createElement('div');
-    damageIndicator.className = 'damage-indicator';
-    
-    let text = `-${value.toFixed(1)}`;
-    let color = '#ff4757';
-    let fontSize = '24px';
-    
-    if (isHammerProc) {
-      text = `🔨 HAMMER! ${text}`;
-      color = '#FFD700';
-      fontSize = '32px';
-    } else if (isCrit) {
-      text = `CRIT! ${text}`;
-      color = '#ff1744';
-      fontSize = '28px';
-    }
-    
-    damageIndicator.textContent = text;
-    damageIndicator.style.color = color;
-    damageIndicator.style.fontSize = fontSize;
-    
-    // 隨機位置避免重疊
-    const randomX = (Math.random() - 0.5) * 100;
-    const randomY = (Math.random() - 0.5) * 50;
-    damageIndicator.style.left = `calc(50% + ${randomX}px)`;
-    damageIndicator.style.top = `calc(50% + ${randomY}px)`;
-    
-    targetCard.appendChild(damageIndicator);
-
-    // 動畫結束後移除元素
-    setTimeout(() => {
-      if (damageIndicator.parentNode) {
-        damageIndicator.remove();
-      }
-    }, 1500);
-
-    // 添加戰鬥日誌
-    this.addLogEntry(
-      isEnemy ? 
-        `Player takes ${value.toFixed(1)} damage` : 
-        `Enemy takes ${value.toFixed(1)} ${isHammerProc ? 'HAMMER' : (isCrit ? 'CRIT' : '')} damage`,
-      isEnemy
-    );
-  }
-
-  addLogEntry(message, isEnemyAttack = false) {
-    const logTitle = document.querySelector('.combat-log .log-title');
-    if (!logTitle) return;
-
-    const logEntry = document.createElement('div');
-    logEntry.className = `log-entry ${isEnemyAttack ? 'enemy' : ''}`;
-    logEntry.textContent = message;
-
-    // 將日誌插入標題下方
-    logTitle.insertAdjacentElement('afterend', logEntry);
-
-    // 保持日誌滾動到底部
-    const logContainer = document.querySelector('.combat-log');
-    logContainer.scrollTop = logContainer.scrollHeight;
-    
-    // 限制日誌條目數量
-    const logEntries = logContainer.querySelectorAll('.log-entry');
-    if (logEntries.length > 15) {
-      logEntries[0].remove();
     }
   }
 }

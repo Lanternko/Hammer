@@ -1,6 +1,4 @@
-// src/systems/EventSystem.js
-import { getRandomBadges } from '../data/badges.js';
-
+// src/systems/EventSystem.js - 簡化版
 class EventSystem {
   constructor(gameManager) {
     this.gameManager = gameManager;
@@ -8,16 +6,36 @@ class EventSystem {
   }
 
   generateShopEvent() {
-    const badges = getRandomBadges(3);
+    // 簡化的商店選項
+    const badges = [
+      {
+        name: '護甲強化',
+        description: '防禦力+8',
+        icon: '🛡️',
+        cost: 4,
+        effect: { armor: 8 }
+      },
+      {
+        name: '生命強化', 
+        description: '最大生命值+25',
+        icon: '❤️',
+        cost: 5,
+        effect: { maxHp: 25 }
+      },
+      {
+        name: '攻速提升',
+        description: '攻擊速度+15%',
+        icon: '⚡',
+        cost: 6,
+        effect: { attackSpeed: 0.075 }
+      }
+    ];
     
     this.currentEvent = {
       type: 'shop',
       title: '🏪 神秘商店',
       description: '一位神秘商人出現了，他有一些有趣的物品...',
-      options: badges.map(badge => ({
-        ...badge,
-        type: 'badge'
-      }))
+      options: badges
     };
     
     this.showEventUI();
@@ -142,18 +160,6 @@ class EventSystem {
         if (this.gameManager.gold >= option.cost) {
           this.buyBadge(option);
         }
-      });
-
-      item.addEventListener('mouseenter', () => {
-        if (this.gameManager.gold >= this.currentEvent.options[index].cost) {
-          item.style.transform = 'scale(1.02)';
-          item.style.boxShadow = '0 5px 15px rgba(78, 205, 196, 0.3)';
-        }
-      });
-
-      item.addEventListener('mouseleave', () => {
-        item.style.transform = 'scale(1)';
-        item.style.boxShadow = 'none';
       });
     });
 

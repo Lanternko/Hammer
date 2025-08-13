@@ -47,7 +47,7 @@ export function getEnemyStats(level, type) {
   const data = EnemyData[type] || EnemyData.highHp;
   
   // Level scaling: +4% per level
-  const growthFactor = 1 + (level - 1) * 0.04;
+  const growthFactor = 1 + (level - 1) * 0.08;
   
   return {
     name: data.name,
