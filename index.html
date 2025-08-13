@@ -1,11 +1,467 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Roguelike Numerical Showdown</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Combat Arena</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated background particles */
+        .bg-particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.3; }
+            50% { transform: translateY(-20px) rotate(180deg); opacity: 0.6; }
+        }
+
+        .combat-arena {
+            position: relative;
+            z-index: 1;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        /* Header */
+        .round-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .round-counter {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+            display: inline-block;
+        }
+
+        /* Main combat area */
+        .combat-container {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 50px;
+            position: relative;
+        }
+
+        /* Character cards */
+        .character-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 25px;
+            width: 320px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .character-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .character-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .hero .character-name {
+            color: #4ecdc4;
+        }
+
+        .enemy .character-name {
+            color: #ff6b6b;
+        }
+
+        /* Health bars */
+        .health-container {
+            margin-bottom: 20px;
+        }
+
+        .health-bar {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            height: 25px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .health-fill {
+            height: 100%;
+            border-radius: 15px;
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero .health-fill {
+            background: linear-gradient(90deg, #4ecdc4, #44a08d);
+            box-shadow: 0 0 20px rgba(78, 205, 196, 0.5);
+        }
+
+        .enemy .health-fill {
+            background: linear-gradient(90deg, #ff6b6b, #ee5a24);
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+        }
+
+        .health-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: shine 2s infinite;
+        }
+
+        @keyframes shine {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .health-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+        }
+
+        /* Attack progress bars */
+        .attack-progress {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            height: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .attack-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffd700, #ffb347);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        /* Combat effects */
+        .vs-indicator {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+        }
+
+        /* Damage indicators */
+        .damage-indicator {
+            position: absolute;
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff4757;
+            text-shadow: 0 0 10px rgba(255, 71, 87, 0.8);
+            animation: damageFloat 1.5s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes damageFloat {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(0.5);
+            }
+            50% {
+                transform: translateY(-30px) scale(1.2);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-60px) scale(1);
+            }
+        }
+
+        /* Stats panel */
+        .stats-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            color: white;
+            min-width: 250px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .stats-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #4ecdc4;
+            border-bottom: 1px solid rgba(78, 205, 196, 0.3);
+            padding-bottom: 8px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        /* Combat log */
+        .combat-log {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            color: white;
+            width: 300px;
+            height: 200px;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .log-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #ff6b6b;
+            border-bottom: 1px solid rgba(255, 107, 107, 0.3);
+            padding-bottom: 8px;
+        }
+
+        .log-entry {
+            font-size: 13px;
+            margin-bottom: 8px;
+            padding: 5px 8px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 3px solid #4ecdc4;
+        }
+
+        .log-entry.enemy {
+            border-left-color: #ff6b6b;
+        }
+
+        /* Canvas for game rendering */
+        #gameCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+    </style>
 </head>
 <body>
+    <div class="bg-particles"></div>
+    
+    <!-- Game Canvas -->
     <canvas id="gameCanvas" width="800" height="600"></canvas>
-    <script type="module" src="main.js"></script>
+    
+    <div class="combat-arena">
+        <div class="round-header">
+            <div class="round-counter">Round 1 / 20</div>
+        </div>
+        
+        <div class="combat-container">
+            <!-- Hero Character -->
+            <div class="character-card hero">
+                <div class="character-name">🛡️ Giant Hero</div>
+                
+                <div class="health-container">
+                    <div class="health-bar">
+                        <div class="health-fill" style="width: 100%"></div>
+                        <div class="health-text">100 / 100</div>
+                    </div>
+                </div>
+                
+                <div class="attack-progress">
+                    <div class="attack-fill" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <!-- VS Indicator -->
+            <div class="vs-indicator">⚔️</div>
+            
+            <!-- Enemy Character -->
+            <div class="character-card enemy">
+                <div class="character-name">👹 Loading...</div>
+                
+                <div class="health-container">
+                    <div class="health-bar">
+                        <div class="health-fill" style="width: 100%"></div>
+                        <div class="health-text">--- / ---</div>
+                    </div>
+                </div>
+                
+                <div class="attack-progress">
+                    <div class="attack-fill" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Panel -->
+    <div class="stats-panel">
+        <div class="stats-title">⚡ Hero Stats</div>
+        <div class="stat-row">
+            <div class="stat-label">
+                <span>⚔️</span>
+                Attack
+            </div>
+            <div class="stat-value">20.0</div>
+        </div>
+        <div class="stat-row">
+            <div class="stat-label">
+                <span>⚡</span>
+                Speed
+            </div>
+            <div class="stat-value">0.50</div>
+        </div>
+        <div class="stat-row">
+            <div class="stat-label">
+                <span>🛡️</span>
+                Defense
+            </div>
+            <div class="stat-value">20.0</div>
+        </div>
+        <div class="stat-row">
+            <div class="stat-label">
+                <span>💥</span>
+                Crit Rate
+            </div>
+            <div class="stat-value">10%</div>
+        </div>
+    </div>
+    
+    <!-- Combat Log -->
+    <div class="combat-log">
+        <div class="log-title">⚡ Combat Log</div>
+    </div>
+    
+    <script type="module">
+        // 創建背景粒子
+        function createParticles() {
+            const container = document.querySelector('.bg-particles');
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.width = Math.random() * 4 + 2 + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.animationDelay = Math.random() * 6 + 's';
+                particle.style.animationDuration = (Math.random() * 4 + 4) + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        // 初始化粒子效果
+        createParticles();
+
+        // 啟動遊戲
+        import('./main.js').then(() => {
+            console.log('遊戲已啟動！');
+        }).catch(error => {
+            console.error('遊戲啟動失敗:', error);
+            
+            // 如果模組載入失敗，顯示錯誤信息
+            document.body.innerHTML = `
+                <div style="
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(255, 0, 0, 0.8);
+                    color: white;
+                    padding: 20px;
+                    border-radius: 10px;
+                    text-align: center;
+                    z-index: 9999;
+                ">
+                    <h2>遊戲載入錯誤</h2>
+                    <p>請確保所有遊戲文件都在正確的位置</p>
+                    <p>錯誤信息: ${error.message}</p>
+                    <button onclick="location.reload()" style="
+                        margin-top: 10px;
+                        padding: 10px 20px;
+                        background: white;
+                        color: red;
+                        border: none;
+                        border-radius: 5px;
+                        cursor: pointer;
+                    ">重新載入</button>
+                </div>
+            `;
+        });
+    </script>
 </body>
 </html>
