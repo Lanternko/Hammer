@@ -22,6 +22,10 @@ class Enemy {
     this.defense = stats.defense;
     this.currentFrame = stats.currentFrame;
     
+    // 新增眩暈狀態
+    this.isStunned = false;
+    this.stunDuration = 0;
+    
     console.log(`✅ 創建敵人成功: ${this.name} (${this.type}) - 等級 ${this.level}`);
     console.log(`📊 屬性: HP ${this.hp}/${this.maxHp}, 攻擊 ${this.attack}, 攻速 ${this.attackSpeed}, 防禦 ${this.defense}`);
   }
@@ -37,6 +41,14 @@ class Enemy {
     this.hp = Math.max(0, this.hp - actualDamage);
     console.log(`${this.name} 受到 ${actualDamage} 傷害，剩餘 HP: ${this.hp}/${this.maxHp}`);
     return this.hp <= 0; // 返回是否死亡
+  }
+
+  // 眩暈效果
+  applyStun(duration) {
+    this.isStunned = true;
+    this.stunDuration = duration;
+    this.currentFrame = 0; // 重置攻擊進度
+    console.log(`${this.name} 被眩暈 ${duration} 秒`);
   }
 
   // 獲取顯示名稱
@@ -69,7 +81,9 @@ class Enemy {
       maxHp: this.maxHp,
       attack: this.attack,
       attackSpeed: this.attackSpeed,
-      defense: this.defense
+      defense: this.defense,
+      isStunned: this.isStunned,
+      stunDuration: this.stunDuration
     };
   }
 }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Combat Arena</title>
+    <title>Combat Arena - Roguelike Battle</title>
     <style>
         * {
             margin: 0;
@@ -17,6 +17,37 @@
             height: 100vh;
             overflow: hidden;
             position: relative;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top: 4px solid #4ecdc4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         /* Animated background particles */
@@ -312,6 +343,13 @@
     </style>
 </head>
 <body>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <h2>Loading Combat Arena...</h2>
+        <p>Initializing battle systems...</p>
+    </div>
+
     <div class="bg-particles"></div>
     
     <div class="combat-arena">
@@ -395,8 +433,10 @@
         <div class="log-title">⚡ Combat Log</div>
     </div>
     
-    <script type="module">
-        // 創建背景粒子
+    <!-- Replace everything after the Combat Log div with this: -->
+    
+    <script>
+        // Create background particles
         function createParticles() {
             const container = document.querySelector('.bg-particles');
             for (let i = 0; i < 30; i++) {
@@ -412,44 +452,22 @@
             }
         }
 
-        // 初始化粒子效果
+        // Initialize particles immediately
         createParticles();
 
-        // 啟動遊戲
-        import('./main.js').then(() => {
-            console.log('遊戲已啟動！');
-        }).catch(error => {
-            console.error('遊戲啟動失敗:', error);
-            
-            // 如果模組載入失敗，顯示錯誤信息
-            document.body.innerHTML = `
-                <div style="
-                    position: fixed;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    background: rgba(255, 0, 0, 0.8);
-                    color: white;
-                    padding: 20px;
-                    border-radius: 10px;
-                    text-align: center;
-                    z-index: 9999;
-                ">
-                    <h2>遊戲載入錯誤</h2>
-                    <p>請確保所有遊戲文件都在正確的位置</p>
-                    <p>錯誤信息: ${error.message}</p>
-                    <button onclick="location.reload()" style="
-                        margin-top: 10px;
-                        padding: 10px 20px;
-                        background: white;
-                        color: red;
-                        border: none;
-                        border-radius: 5px;
-                        cursor: pointer;
-                    ">重新載入</button>
-                </div>
-            `;
-        });
+        // Hide loading screen after delay
+        setTimeout(() => {
+            const loadingScreen = document.getElementById('loadingScreen');
+            if (loadingScreen) {
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                }, 500);
+            }
+        }, 1000);
     </script>
+    
+    <!-- Load the main game module -->
+    <script type="module" src="main.js"></script>
 </body>
 </html>
