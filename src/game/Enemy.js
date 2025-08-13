@@ -1,81 +1,76 @@
 // src/game/Enemy.js
+import { getEnemyStats } from '../data/Enemies.js';
+
 class Enemy {
-  constructor(round) {
-    // Base stats
-    this.baseHp = 80;
-    this.baseAttack = 12;
-    this.baseSpeed = 0.4;
+  constructor(level, type) {
+    console.log(`嘗試創建敵人: 等級 ${level}, 類型 ${type}`);
     
-    // Scale stats based on round (7% growth per round both for HP and Attack)
-    const scale = Math.pow(1.07, round - 1);
+    // 使用敵人數據系統生成屬性
+    const stats = getEnemyStats(level, type);
     
-    this.maxHp = Math.floor(this.baseHp * scale);
-    this.hp = this.maxHp;
-    this.attack = Math.floor(this.baseAttack * scale);
-    this.speed = this.baseSpeed;
-    this.defense = 5; // Fixed defense
-    this.critRate = 5; // Fixed crit rate
+    // 複製所有屬性到當前實例
+    this.name = stats.name;
+    this.emoji = stats.emoji;
+    this.description = stats.description;
+    this.type = stats.type;
+    this.level = stats.level;
+    this.maxHp = stats.maxHp;
+    this.hp = stats.hp;
+    this.attack = stats.attack;
+    this.attackSpeed = stats.attackSpeed;
+    this.attackFrame = stats.attackFrame;
+    this.defense = stats.defense;
+    this.currentFrame = stats.currentFrame;
     
-    this.attackFrame = Math.round(20 / this.speed);
-    this.currentFrame = 0;
-    this.round = round;
+    console.log(`✅ 創建敵人成功: ${this.name} (${this.type}) - 等級 ${this.level}`);
+    console.log(`📊 屬性: HP ${this.hp}/${this.maxHp}, 攻擊 ${this.attack}, 攻速 ${this.attackSpeed}, 防禦 ${this.defense}`);
   }
 
-  // Calculate damage dealt by enemy
-  calculateDamage() {
-    const isCrit = Math.random() * 100 < this.critRate;
-    const baseDamage = this.attack;
-    return {
-      damage: isCrit ? Math.floor(baseDamage * 1.5) : baseDamage,
-      isCrit
-    };
+  // 攻擊方法
+  attack() {
+    return this.attack;
   }
 
-  // Take damage (simple HP reduction)
-  takeDamage(rawDamage) {
-    const reducedDamage = rawDamage - this.defense;
-    const finalDamage = Math.max(1, reducedDamage);
-    this.hp = Math.max(0, this.hp - finalDamage);
-    return {
-      finalDamage,
-      isDead: this.hp <= 0
-    };
+  // 受到傷害
+  takeDamage(damage) {
+    const actualDamage = Math.max(1, damage - this.defense);
+    this.hp = Math.max(0, this.hp - actualDamage);
+    console.log(`${this.name} 受到 ${actualDamage} 傷害，剩餘 HP: ${this.hp}/${this.maxHp}`);
+    return this.hp <= 0; // 返回是否死亡
   }
 
-  // Check if enemy can attack this frame
-  canAttack() {
-    this.currentFrame++;
-    if (this.currentFrame >= this.attackFrame) {
-      this.currentFrame = 0;
-      return true;
-    }
-    return false;
+  // 獲取顯示名稱
+  getDisplayName() {
+    return `${this.emoji} ${this.name}`;
   }
 
-  // Get attack progress percentage
-  getAttackProgress() {
-    return (this.currentFrame / this.attackFrame) * 100;
+  // 獲取類型名稱  
+  getTypeName() {
+    return this.name;
   }
 
-  // Reset for combat
+  // 獲取表情符號
+  getEmoji() {
+    return this.emoji;
+  }
+
+  // 重置攻擊框架
   reset() {
     this.currentFrame = 0;
   }
 
-  // Get enemy type name for display
-  getTypeName() {
-    if (this.round <= 5) return 'Balanced Enemy';
-    if (this.round <= 10) return 'Strong Enemy';
-    if (this.round <= 15) return 'Elite Enemy';
-    return 'Boss Enemy';
-  }
-
-  // Get enemy emoji for display
-  getEmoji() {
-    if (this.round <= 5) return '👹';
-    if (this.round <= 10) return '🔥';
-    if (this.round <= 15) return '⚡';
-    return '💀';
+  // 獲取詳細信息（用於調試）
+  getInfo() {
+    return {
+      name: this.name,
+      type: this.type,
+      level: this.level,
+      hp: this.hp,
+      maxHp: this.maxHp,
+      attack: this.attack,
+      attackSpeed: this.attackSpeed,
+      defense: this.defense
+    };
   }
 }
 

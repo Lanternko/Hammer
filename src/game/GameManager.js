@@ -1,49 +1,30 @@
-<<<<<<< HEAD
-// 修復後的 GameManager.js
-=======
->>>>>>> a4f7d26e54d25ca90d429092c220c79698ce667a
 // src/game/GameManager.js
 import Player from './Player.js';
 import Enemy from './Enemy.js';
 import BattleSystem from '../systems/BattleSystem.js';
-<<<<<<< HEAD
-=======
-import UIManager from '../ui/UIManager.js'; // 新增：引入 UIManager
->>>>>>> a4f7d26e54d25ca90d429092c220c79698ce667a
+import EventSystem from '../systems/EventSystem.js';
+import { selectEnemyType } from '../data/enemies.js';
 
 class GameManager {
   constructor() {
-    this.currentLevel = 1; // 從第1關開始，不是第7關
+    this.currentLevel = 1;
     this.player = new Player();
     this.enemy = null;
     this.state = 'battle';
     this.gold = 0;
     this.diamonds = 0;
-<<<<<<< HEAD
     this.battleSystem = null;
+    this.eventSystem = new EventSystem(this);
   }
 
   startGame() {
-    console.log('遊戲啟動 - 第1關開始');
-    this.updateUI(); // 更新UI顯示
-=======
-    this.uiManager = new UIManager(); // 在這裡創建 UIManager 的唯一實例
-  }
-
-  startGame() {
-    console.log('遊戲啟動');
-    this.uiManager.createBackgroundParticles(); // 在遊戲開始時呼叫，創建背景特效
->>>>>>> a4f7d26e54d25ca90d429092c220c79698ce667a
+    console.log('🎮 遊戲啟動 - 準備第1關');
+    this.updateUI();
     this.nextLevel();
   }
 
-  // Get a random enemy type based on current level
   nextLevel() {
-<<<<<<< HEAD
-    if (this.currentLevel > 20) { // 改為20關
-=======
-    if (this.currentLevel > 5) {
->>>>>>> a4f7d26e54d25ca90d429092c220c79698ce667a
+    if (this.currentLevel > 20) {
       return this.endGame();
     }
 
@@ -53,14 +34,15 @@ class GameManager {
       return;
     }
 
-    const enemyType = this.currentLevel === 20 ? 'smallBoss' : this.getRandomEnemyType();
+    // 使用新的敵人選擇系統
+    const enemyType = selectEnemyType(this.currentLevel);
     this.enemy = new Enemy(this.currentLevel, enemyType);
     
-    console.log(`進入關卡 ${this.currentLevel}, 敵人: ${enemyType}`);
-<<<<<<< HEAD
-    console.log(`敵人血量: ${this.enemy.hp}, 攻擊力: ${this.enemy.attackDamage}`);
+    console.log(`⚔️ 關卡 ${this.currentLevel}: 遭遇 ${this.enemy.getDisplayName()}`);
+    console.log(`📊 敵人屬性: HP ${this.enemy.hp}/${this.enemy.maxHp}, 攻擊 ${this.enemy.attack}, 攻速 ${this.enemy.attackSpeed}, 防禦 ${this.enemy.defense}`);
     
     this.updateUI();
+    this.updateEnemyDisplay();
     
     // 停止舊的戰鬥系統
     if (this.battleSystem) {
@@ -72,77 +54,89 @@ class GameManager {
   }
 
   endBattle(won) {
-    console.log(`戰鬥結束 - ${won ? '勝利' : '失敗'}`);
+    console.log(`⚔️ 戰鬥結束 - ${won ? '✅ 勝利' : '❌ 失敗'}`);
     
     if (!won) {
-      console.log('玩家失敗，遊戲結束');
+      console.log('💀 玩家失敗，遊戲結束');
       return this.endGame();
     }
 
     // 獲得金幣獎勵
-    const goldReward = this.currentLevel === 20 ? 3 : 1; // 最終Boss給3金幣
+    let goldReward = 1;
+    if (this.currentLevel === 20) {
+      goldReward = 5; // 最終Boss給5金幣
+    } else if (this.currentLevel % 5 === 0) {
+      goldReward = 2; // 每5關的倍數給2金幣
+    }
+    
     this.gold += goldReward;
-    console.log(`關卡 ${this.currentLevel} 完成，獲得金幣: ${goldReward}，總金幣: ${this.gold}`);
+    console.log(`💰 關卡 ${this.currentLevel} 完成！獲得金幣: ${goldReward}，總金幣: ${this.gold}`);
+
+    // 顯示勝利信息
+    this.showVictoryMessage(goldReward);
 
     // 關卡完成後的短暫延遲
     setTimeout(() => {
       this.currentLevel++;
       this.nextLevel();
-    }, 1500); // 1.5秒後進入下一關
+    }, 2000); // 2秒後進入下一關
+  }
+
+  showVictoryMessage(goldReward) {
+    // 創建勝利提示
+    const victoryDiv = document.createElement('div');
+    victoryDiv.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, #2ECC71, #27AE60);
+      color: white;
+      padding: 20px 30px;
+      border-radius: 15px;
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+      z-index: 1000;
+      box-shadow: 0 10px 30px rgba(46, 204, 113, 0.4);
+      animation: victoryPulse 0.5s ease-out;
+    `;
+
+    victoryDiv.innerHTML = `
+      <div>🎉 關卡 ${this.currentLevel} 完成！</div>
+      <div style="margin-top: 10px; font-size: 16px;">
+        💰 +${goldReward} 金幣
+      </div>
+    `;
+
+    // 添加動畫
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes victoryPulse {
+        0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+        50% { transform: translate(-50%, -50%) scale(1.1); }
+        100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+
+    document.body.appendChild(victoryDiv);
+
+    // 1.5秒後移除
+    setTimeout(() => {
+      if (victoryDiv.parentNode) {
+        victoryDiv.remove();
+      }
+      if (style.parentNode) {
+        style.remove();
+      }
+    }, 1500);
   }
 
   triggerEvent() {
-    console.log(`觸發事件關卡 ${this.currentLevel}`);
-    
-    // 簡單的商店系統
+    console.log(`🏪 觸發事件關卡 ${this.currentLevel}`);
     this.state = 'shop';
-    this.showShop();
-  }
-
-  showShop() {
-    // 暫時用console模擬商店，之後會實現真正的UI
-    console.log('=== 商店 ===');
-    console.log('1. 護甲強化 (+10防禦) - 5金幣');
-    console.log('2. 生命強化 (+20血量) - 6金幣');
-    console.log('3. 攻速提升 (+0.2攻速) - 8金幣');
-    console.log(`你有 ${this.gold} 金幣`);
-    
-    // 自動購買第一個可購買的物品 (暫時)
-    if (this.gold >= 5) {
-      this.buyItem('armor');
-    } else {
-      console.log('金幣不足，跳過商店');
-      this.finishEvent();
-    }
-  }
-
-  buyItem(itemType) {
-    switch(itemType) {
-      case 'armor':
-        if (this.gold >= 5) {
-          this.gold -= 5;
-          this.player.armor += 10;
-          console.log('購買護甲強化！防禦力+10');
-        }
-        break;
-      case 'health':
-        if (this.gold >= 6) {
-          this.gold -= 6;
-          this.player.maxHp += 20;
-          this.player.hp += 20; // 也回復當前血量
-          console.log('購買生命強化！最大血量+20');
-        }
-        break;
-      case 'speed':
-        if (this.gold >= 8) {
-          this.gold -= 8;
-          this.player.attackSpeed += 0.2;
-          console.log('購買攻速提升！攻擊速度+0.2');
-        }
-        break;
-    }
-    
-    this.finishEvent();
+    this.eventSystem.generateShopEvent();
   }
 
   finishEvent() {
@@ -154,203 +148,86 @@ class GameManager {
   }
 
   endGame() {
-    const diamonds = Math.floor(this.currentLevel / 5) + (this.currentLevel > 20 ? 5 : 0);
-    console.log(`遊戲結束！到達關卡: ${this.currentLevel}, 獲得鑽石: ${diamonds}`);
+    const diamonds = Math.floor(this.currentLevel / 5) + (this.currentLevel >= 20 ? 5 : 0);
+    console.log(`🎯 遊戲結束！到達關卡: ${this.currentLevel}, 獲得鑽石: ${diamonds}`);
     this.diamonds += diamonds;
     
-    // 重置遊戲
+    this.showGameOverScreen();
+    
+    // 3秒後重置遊戲
     setTimeout(() => {
       this.resetGame();
-    }, 3000);
+    }, 5000);
+  }
+
+  showGameOverScreen() {
+    const gameOverDiv = document.createElement('div');
+    gameOverDiv.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    `;
+
+    const isVictory = this.currentLevel > 20;
+    
+    gameOverDiv.innerHTML = `
+      <div style="
+        background: linear-gradient(135deg, ${isVictory ? '#2ECC71, #27AE60' : '#E74C3C, #C0392B'});
+        padding: 40px;
+        border-radius: 20px;
+        text-align: center;
+        color: white;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      ">
+        <div style="font-size: 48px; margin-bottom: 20px;">
+          ${isVictory ? '🏆' : '💀'}
+        </div>
+        <h2 style="font-size: 32px; margin-bottom: 15px;">
+          ${isVictory ? '恭喜勝利！' : '遊戲結束'}
+        </h2>
+        <p style="font-size: 20px; margin-bottom: 20px;">
+          ${isVictory ? '你征服了所有20關！' : `你在第 ${this.currentLevel} 關倒下了`}
+        </p>
+        <p style="font-size: 16px; opacity: 0.9;">
+          💎 獲得鑽石: ${Math.floor(this.currentLevel / 5)}
+        </p>
+        <p style="font-size: 14px; margin-top: 20px; opacity: 0.7;">
+          遊戲將在幾秒後重新開始...
+        </p>
+      </div>
+    `;
+
+    document.body.appendChild(gameOverDiv);
+
+    // 5秒後移除
+    setTimeout(() => {
+      if (gameOverDiv.parentNode) {
+        gameOverDiv.remove();
+      }
+    }, 4500);
   }
 
   resetGame() {
-    console.log('重新開始遊戲...');
+    console.log('🔄 重新開始遊戲...');
     this.currentLevel = 1;
     this.player = new Player();
+    this.enemy = null;
     this.state = 'battle';
     this.gold = 0;
+    // 鑽石保留不重置
+    
+    // 清理UI
+    const existingOverlays = document.querySelectorAll('[id*="Overlay"], .damage-indicator');
+    existingOverlays.forEach(overlay => overlay.remove());
+    
     this.startGame();
-=======
-    // 將 uiManager 實例傳遞給 BattleSystem
-    new BattleSystem(this.player, this.enemy, this, this.uiManager).start();
-  }
-
-  // Start a new round
-  startRound() {
-    if (this.currentRound > this.maxRounds) {
-      this.endGame(true); // Player completed all rounds
-      return;
-    }
-
-    // Create new enemy for this round
-    this.enemy = new Enemy(this.currentRound);
-    
-    // Update UI
-    this.uiManager.updateRoundCounter(this.currentRound, this.maxRounds);
-    this.uiManager.updateEnemyDisplay(this.enemy);
-    this.uiManager.updateHealthBars(this.player, this.enemy);
-    this.uiManager.updateStatsPanel(this.player);
-    
-    this.uiManager.addLogEntry(`🎯 Round ${this.currentRound} begins!`);
-    this.uiManager.addLogEntry(`👹 Enemy: ${this.enemy.maxHp} HP, ${this.enemy.attack} ATK`);
-    
-    // Start battle
-    this.startBattle();
-  }
-
-  // Start battle system
-  startBattle() {
-    this.gameState = 'battle';
-    
-    // Create battle system with callback
-    this.battleSystem = new BattleSystem(
-      this.player,
-      this.enemy,
-      this.uiManager,
-      (playerWins) => this.onBattleEnd(playerWins)
-    );
-    
-    // Start battle after short delay
-    setTimeout(() => {
-      this.battleSystem.start();
-    }, 1000);
->>>>>>> a4f7d26e54d25ca90d429092c220c79698ce667a
-  }
-
-  // Handle battle end
-  onBattleEnd(playerWins) {
-    if (playerWins) {
-      this.gameState = 'levelUp';
-      this.showLevelUpRewards();
-    } else {
-      this.endGame(false); // Player died
-    }
-  }
-
-  // Show level up rewards
-  showLevelUpRewards() {
-    const options = this.generateLevelUpOptions();
-    
-    this.uiManager.showLevelUpModal(options, (selectedIndex) => {
-      this.applyLevelUpReward(options[selectedIndex]);
-    });
-  }
-
-  // Generate level up options (10% avg with variance)
-  generateLevelUpOptions() {
-    const stats = [
-      { stat: 'attack', display: 'Attack', icon: '⚔️' },
-      { stat: 'defense', display: 'Defense', icon: '🛡️' },
-      { stat: 'maxHp', display: 'Max HP', icon: '❤️' },
-      { stat: 'speed', display: 'Speed', icon: '⚡' },
-      { stat: 'critRate', display: 'Crit Rate', icon: '💥' }
-    ];
-    
-    const options = [];
-    
-    // Generate 4 random options
-    for (let i = 0; i < 4; i++) {
-      const randomStat = stats[Math.floor(Math.random() * stats.length)];
-      const baseIncrease = 0.10; // 10% base
-      const variance = (Math.random() - 0.5) * 0.04; // ±2% variance
-      const increase = baseIncrease + variance; // 8-12% range
-      
-      options.push({
-        ...randomStat,
-        increase,
-        boostText: `+${(increase * 100).toFixed(1)}%`
-      });
-    }
-    
-    return options;
-  }
-
-  // Apply selected level up reward
-  applyLevelUpReward(option) {
-    const oldValue = this.player[option.stat];
-    this.player.applyStatBoost(option.stat, option.increase);
-    const newValue = this.player[option.stat];
-    
-    this.uiManager.addLogEntry(
-      `🔥 ${option.display} increased: ${oldValue.toFixed(1)} → ${newValue.toFixed(1)}`
-    );
-    
-    // Update displays
-    this.uiManager.updateStatsPanel(this.player);
-    
-    // Continue to next round
-    setTimeout(() => {
-      this.currentRound++;
-      this.startRound();
-    }, 1500);
-  }
-
-  // End game
-  endGame(victory) {
-    this.gameState = 'gameOver';
-    
-    if (victory) {
-      this.uiManager.addLogEntry('🏆 VICTORY! You completed all 20 rounds!');
-      this.uiManager.addLogEntry('🎉 You are the ultimate champion!');
-    } else {
-      this.uiManager.addLogEntry('💀 GAME OVER! You were defeated!');
-      this.uiManager.addLogEntry(`📊 You reached Round ${this.currentRound}`);
-    }
-    
-    // Show game over options after delay
-    setTimeout(() => {
-      this.showGameOverOptions(victory);
-    }, 2000);
-  }
-
-  // Show game over options
-  showGameOverOptions(victory) {
-    const modal = document.createElement('div');
-    modal.className = 'level-up-modal';
-    modal.innerHTML = `
-      <div class="level-up-content">
-        <div class="level-up-title">${victory ? '🏆 VICTORY!' : '💀 GAME OVER'}</div>
-        <div style="margin: 20px 0; color: white; font-size: 16px;">
-          ${victory ? 
-            'Congratulations! You conquered all 20 rounds!' : 
-            `You reached Round ${this.currentRound}`
-          }
-        </div>
-        <button class="continue-btn" onclick="location.reload()">
-          🔄 Play Again
-        </button>
-      </div>
-    `;
-    
-    document.body.appendChild(modal);
-  }
-
-  // Get current game statistics
-  getGameStats() {
-    return {
-      currentRound: this.currentRound,
-      playerStats: {
-        hp: this.player.hp,
-        maxHp: this.player.maxHp,
-        attack: this.player.attack,
-        defense: this.player.defense,
-        speed: this.player.speed,
-        critRate: this.player.critRate
-      },
-      enemyStats: this.enemy ? {
-        hp: this.enemy.hp,
-        maxHp: this.enemy.maxHp,
-        attack: this.enemy.attack,
-        defense: this.enemy.defense
-      } : null
-    };
-  }
-
-  // 👇 --- 請將這個方法加回來 --- 👇
-  getRandomEnemyType() {
-    const types = ['highSpeed', 'highDamage', 'balanced'];
-    return types[Math.floor(Math.random() * types.length)];
   }
 
   updateUI() {
@@ -362,6 +239,34 @@ class GameManager {
 
     // 更新玩家資訊
     this.updatePlayerStats();
+  }
+
+  updateEnemyDisplay() {
+    if (!this.enemy) return;
+
+    // 更新敵人名稱
+    const enemyName = document.querySelector('.enemy .character-name');
+    if (enemyName) {
+      enemyName.textContent = this.enemy.getDisplayName();
+    }
+
+    // 更新敵人血量顯示
+    const enemyHealthText = document.querySelector('.enemy .health-text');
+    if (enemyHealthText) {
+      enemyHealthText.textContent = `${this.enemy.hp} / ${this.enemy.maxHp}`;
+    }
+
+    // 重置血條
+    const enemyHealthFill = document.querySelector('.enemy .health-fill');
+    if (enemyHealthFill) {
+      enemyHealthFill.style.width = '100%';
+    }
+
+    // 重置攻擊進度條
+    const enemyAttackFill = document.querySelector('.enemy .attack-fill');
+    if (enemyAttackFill) {
+      enemyAttackFill.style.width = '0%';
+    }
   }
 
   updatePlayerStats() {
@@ -379,176 +284,16 @@ class GameManager {
       stats[2].textContent = this.player.armor.toFixed(1);
       stats[3].textContent = (this.player.critChance * 100).toFixed(0) + '%';
     }
+
+    // 更新玩家血條
+    const heroHealthFill = document.querySelector('.hero .health-fill');
+    const heroHealthText = document.querySelector('.hero .health-text');
+    if (heroHealthFill && heroHealthText) {
+      const hpPercent = Math.max(0, (this.player.hp / this.player.maxHp) * 100);
+      heroHealthFill.style.width = `${hpPercent}%`;
+      heroHealthText.textContent = `${Math.round(this.player.hp)} / ${this.player.maxHp}`;
+    }
   }
 }
 
 export default GameManager;
-
-// ========================
-
-// 修復後的 BattleSystem.js
-// src/systems/BattleSystem.js
-import UIManager from '../ui/UIManager.js';
-
-class BattleSystem {
-  constructor(player, enemy, gameManager) {
-    this.player = player;
-    this.enemy = enemy;
-    this.gameManager = gameManager;
-    this.frameCount = 0;
-    this.isActive = true;
-    this.uiManager = new UIManager();
-    this.animationId = null;
-  }
-
-  start() {
-    console.log('戰鬥開始');
-    this.isActive = true;
-    this.loop();
-  }
-
-  stop() {
-    this.isActive = false;
-    if (this.animationId) {
-      cancelAnimationFrame(this.animationId);
-    }
-  }
-
-  loop() {
-    if (!this.isActive) return;
-    
-    this.tick();
-    this.uiManager.drawBattle(this.player, this.enemy);
-    
-    this.animationId = requestAnimationFrame(() => this.loop());
-  }
-
-  tick() {
-    // 檢查遊戲是否還在進行
-    if (!this.isActive) return;
-
-    this.player.currentFrame++;
-    this.enemy.currentFrame++;
-
-    // 玩家攻擊
-    if (this.player.currentFrame >= this.player.attackFrame) {
-      const dmg = this.player.attack();
-      console.log(`玩家攻擊造成 ${dmg} 傷害`);
-      
-      const isDead = this.enemy.takeDamage(dmg);
-      this.uiManager.showDamage(dmg, this.player.critChance > Math.random(), false);
-      
-      if (isDead) {
-        console.log('敵人被擊敗！');
-        this.isActive = false;
-        this.gameManager.endBattle(true);
-        return;
-      }
-      this.player.currentFrame = 0;
-    }
-
-    // 敵人攻擊
-    if (this.enemy.currentFrame >= this.enemy.attackFrame && this.isActive) {
-      const rawDmg = this.enemy.attack();
-      const finalDmg = this.player.takeDamage(rawDmg);
-      console.log(`敵人攻擊造成 ${finalDmg} 傷害`);
-      
-      this.uiManager.showDamage(finalDmg, false, true);
-      
-      if (this.player.hp <= 0) {
-        console.log('玩家被擊敗！');
-        this.isActive = false;
-        this.gameManager.endBattle(false);
-        return;
-      }
-      this.enemy.currentFrame = 0;
-    }
-
-    // 更新UI中的玩家狀態
-    this.gameManager.updatePlayerStats();
-  }
-}
-
-export default BattleSystem;
-
-// ========================
-
-// 修復後的 Player.js - 添加升級機制
-// src/game/Player.js
-class Player {
-  constructor() {
-    this.hp = 100;
-    this.maxHp = 100;
-    this.attack = 20;
-    this.attackSpeed = 0.5;
-    this.armor = 20;
-    this.flatReduction = 5;
-    this.critChance = 0.1;
-    this.badges = [];
-    this.attackFrame = Math.round(20 / this.attackSpeed);
-    this.currentFrame = 0;
-    
-    // 經驗值系統
-    this.level = 1;
-    this.exp = 0;
-    this.expToNext = 100;
-  }
-
-  attack() {
-    const isCrit = Math.random() < this.critChance;
-    const damage = this.attack * (isCrit ? 2 : 1);
-    
-    // 獲得經驗值
-    this.gainExp(5);
-    
-    return damage;
-  }
-
-  takeDamage(rawDamage) {
-    const reduced = rawDamage / (1 + this.armor / 100);
-    const final = Math.max(1, reduced - this.flatReduction); // 最少1點傷害
-    this.hp = Math.max(0, this.hp - final);
-    return final;
-  }
-
-  gainExp(amount) {
-    this.exp += amount;
-    if (this.exp >= this.expToNext) {
-      this.levelUp();
-    }
-  }
-
-  levelUp() {
-    this.level++;
-    this.exp = 0;
-    this.expToNext = Math.floor(this.expToNext * 1.2); // 每級需要更多經驗
-    
-    // 升級獎勵
-    this.maxHp += 10;
-    this.hp += 10; // 升級時回復血量
-    this.attack += 2;
-    
-    console.log(`升級！等級: ${this.level}, 血量+10, 攻擊+2`);
-  }
-
-  // 裝備徽章
-  equipBadge(badge) {
-    this.badges.push(badge);
-    this.applyBadgeEffect(badge);
-  }
-
-  applyBadgeEffect(badge) {
-    if (badge.effect.maxHp) this.maxHp += badge.effect.maxHp;
-    if (badge.effect.attack) this.attack += badge.effect.attack;
-    if (badge.effect.armor) this.armor += badge.effect.armor;
-    if (badge.effect.attackSpeed) {
-      this.attackSpeed += badge.effect.attackSpeed;
-      this.attackFrame = Math.round(20 / this.attackSpeed);
-    }
-    if (badge.effect.critChance) this.critChance += badge.effect.critChance;
-    
-    console.log(`裝備徽章: ${badge.name}`);
-  }
-}
-
-export default Player;

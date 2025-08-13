@@ -1,122 +1,173 @@
-<<<<<<< HEAD
-// 更新 src/systems/BattleSystem.js
-=======
 // src/systems/BattleSystem.js
-
->>>>>>> a4f7d26e54d25ca90d429092c220c79698ce667a
 class BattleSystem {
-  // 修改 constructor 來接收 uiManager
-  constructor(player, enemy, gameManager, uiManager) {
+  constructor(player, enemy, gameManager) {
     this.player = player;
     this.enemy = enemy;
     this.gameManager = gameManager;
-<<<<<<< HEAD
     this.frameCount = 0;
-    this.isActive = true;
-    this.uiManager = new UIManager();
-    this.lastFrameTime = performance.now();
-  }
-
-  tick() {
-    const currentTime = performance.now();
-    const deltaTime = (currentTime - this.lastFrameTime) / 1000;
-    this.lastFrameTime = currentTime;
-    
-    // 更新狀態效果
-    this.player.update(deltaTime);
-    this.enemy.update(deltaTime);
-    
-    // 更新攻擊幀計數
-    const playerAttackSpeed = this.player.getCurrentAttackSpeed();
-    const playerAttackFrame = Math.round(20 / playerAttackSpeed);
-    
-=======
     this.isActive = false;
-    this.uiManager = uiManager; // 使用從 GameManager 傳入的實例
+    this.animationId = null;
   }
 
   start() {
+    console.log('戰鬥開始');
     this.isActive = true;
-    this.uiManager.updateRound(this.gameManager.currentLevel);
-    this.uiManager.addLogEntry(`⚔️ Combat begins!`);
+    this.updateUIElements();
+    this.loop();
+  }
 
-    const loop = (timestamp) => {
-      if (!this.isActive) return;
-      this.tick();
-      this.uiManager.drawBattle(this.player, this.enemy);
-      requestAnimationFrame(loop);
-    };
-    requestAnimationFrame(loop);
+  stop() {
+    this.isActive = false;
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId);
+      this.animationId = null;
+    }
+  }
+
+  loop() {
+    if (!this.isActive) return;
+    
+    this.tick();
+    this.updateUIElements();
+    
+    this.animationId = requestAnimationFrame(() => this.loop());
   }
 
   tick() {
-    // 只有在戰鬥進行中才增加 frame
-    if(!this.isActive) return;
+    if (!this.isActive) return;
 
->>>>>>> a4f7d26e54d25ca90d429092c220c79698ce667a
     this.player.currentFrame++;
     this.enemy.currentFrame++;
 
     // 玩家攻擊
-<<<<<<< HEAD
-    if (this.player.currentFrame >= playerAttackFrame) {
-      const dmg = this.player.attack(this.enemy);
+    if (this.player.currentFrame >= this.player.attackFrame) {
+      const isCrit = Math.random() < this.player.critChance;
+      const baseDmg = this.player.attack;
+      const dmg = isCrit ? baseDmg * 2 : baseDmg;
       
-      // 檢查同命連結觸發
-      if (this.player.checkSympathyLink() && this.enemy.hp > this.player.hp) {
-        console.log('同命連結觸發！');
-        this.enemy.hp = this.player.hp;
-        this.uiManager.showSpecialEffect('sympathy_link');
-      }
+      console.log(`玩家攻擊造成 ${dmg} 傷害 ${isCrit ? '(暴擊!)' : ''}`);
       
-      if (this.enemy.takeDamage(dmg)) {
+      // 敵人受到傷害
+      const reducedDmg = Math.max(1, dmg - this.enemy.defense);
+      this.enemy.hp = Math.max(0, this.enemy.hp - reducedDmg);
+      
+      this.showDamage(reducedDmg, isCrit, false);
+      
+      if (this.enemy.hp <= 0) {
+        console.log('敵人被擊敗！');
         this.isActive = false;
         this.gameManager.endBattle(true);
+        return;
       }
       this.player.currentFrame = 0;
     }
 
     // 敵人攻擊
     if (this.enemy.currentFrame >= this.enemy.attackFrame && this.isActive) {
-      const rawDmg = this.enemy.attack(this.player);
-      const finalDmg = this.player.takeDamage(rawDmg);
+      const rawDmg = this.enemy.attack;
       
-=======
-    if (this.player.currentFrame >= this.player.attackFrame) {
-      this.player.currentFrame = 0;
-      const dmg = this.player.attack(); // 傷害在 Player 內部計算
-      const isCrit = Math.random() < this.player.critChance;
-      const finalDmg = isCrit ? dmg * 2 : dmg; // 假設暴擊兩倍
-
-      this.uiManager.showDamage(finalDmg, isCrit, false);
-      this.uiManager.addLogEntry(`Player deals ${finalDmg.toFixed(1)} ${isCrit ? 'CRIT' : ''} damage!`);
+      // 玩家受到傷害
+      const reduced = rawDmg / (1 + this.player.armor / 100);
+      const finalDmg = Math.max(1, reduced - this.player.flatReduction);
+      this.player.hp = Math.max(0, this.player.hp - finalDmg);
       
-      if (this.enemy.takeDamage(finalDmg)) { // takeDamage 回傳是否死亡
+      console.log(`敵人攻擊造成 ${finalDmg.toFixed(1)} 傷害`);
+      this.showDamage(finalDmg, false, true);
+      
+      if (this.player.hp <= 0) {
+        console.log('玩家被擊敗！');
         this.isActive = false;
-        this.uiManager.addLogEntry('🏆 Player Wins!');
-        setTimeout(() => this.gameManager.endBattle(true), 1500); // 延遲一點結束，讓動畫跑完
+        this.gameManager.endBattle(false);
+        return;
       }
+      this.enemy.currentFrame = 0;
     }
 
-    // 敵人攻擊 (如果玩家攻擊後還活著)
-    if (this.isActive && this.enemy.currentFrame >= this.enemy.attackFrame) {
-      this.enemy.currentFrame = 0;
-      const rawDmg = this.enemy.attack();
-      const finalDmg = this.player.takeDamage(rawDmg); // 傷害在 Player 內部計算
+    // 更新UI
+    this.gameManager.updatePlayerStats();
+  }
 
-      this.uiManager.showDamage(finalDmg, false, true);
-      this.uiManager.addLogEntry(`Enemy deals ${finalDmg.toFixed(1)} damage.`, true);
+  updateUIElements() {
+    // 更新敵人名稱和血量
+    const enemyName = document.querySelector('.enemy .character-name');
+    if (enemyName && this.enemy) {
+      enemyName.textContent = `👹 ${this.enemy.getTypeName()} (${Math.round(this.enemy.hp)}/${this.enemy.maxHp})`;
+    }
 
->>>>>>> a4f7d26e54d25ca90d429092c220c79698ce667a
-      if (this.player.hp <= 0) {
-        this.isActive = false;
-        this.uiManager.addLogEntry('Player is defeated...');
-        setTimeout(() => this.gameManager.endBattle(false), 1500);
-      }
-<<<<<<< HEAD
-      this.enemy.currentFrame = 0;
-=======
->>>>>>> a4f7d26e54d25ca90d429092c220c79698ce667a
+    // 更新血條
+    const heroHealthFill = document.querySelector('.hero .health-fill');
+    const heroHealthText = document.querySelector('.hero .health-text');
+    if (heroHealthFill && heroHealthText) {
+      const hpPercent = Math.max(0, (this.player.hp / this.player.maxHp) * 100);
+      heroHealthFill.style.width = `${hpPercent}%`;
+      heroHealthText.textContent = `${Math.round(this.player.hp)} / ${this.player.maxHp}`;
+    }
+
+    const enemyHealthFill = document.querySelector('.enemy .health-fill');
+    const enemyHealthText = document.querySelector('.enemy .health-text');
+    if (enemyHealthFill && enemyHealthText && this.enemy) {
+      const hpPercent = Math.max(0, (this.enemy.hp / this.enemy.maxHp) * 100);
+      enemyHealthFill.style.width = `${hpPercent}%`;
+      enemyHealthText.textContent = `${Math.round(this.enemy.hp)} / ${this.enemy.maxHp}`;
+    }
+
+    // 更新攻擊進度條
+    const heroAttackFill = document.querySelector('.hero .attack-fill');
+    if (heroAttackFill) {
+      const attackPercent = (this.player.currentFrame / this.player.attackFrame) * 100;
+      heroAttackFill.style.width = `${attackPercent}%`;
+    }
+
+    const enemyAttackFill = document.querySelector('.enemy .attack-fill');
+    if (enemyAttackFill && this.enemy) {
+      const attackPercent = (this.enemy.currentFrame / this.enemy.attackFrame) * 100;
+      enemyAttackFill.style.width = `${attackPercent}%`;
     }
   }
+
+  showDamage(value, isCrit, isEnemy) {
+    const targetCard = document.querySelector(isEnemy ? '.hero .character-card' : '.enemy .character-card');
+    if (!targetCard) return;
+
+    const damageIndicator = document.createElement('div');
+    damageIndicator.className = 'damage-indicator';
+    damageIndicator.textContent = isCrit ? `CRIT! -${value.toFixed(1)}` : `-${value.toFixed(1)}`;
+    if (isCrit) {
+      damageIndicator.style.color = '#ff1744';
+      damageIndicator.style.fontSize = '28px';
+    }
+    
+    targetCard.appendChild(damageIndicator);
+
+    // 動畫結束後移除元素
+    setTimeout(() => {
+      if (damageIndicator.parentNode) {
+        damageIndicator.remove();
+      }
+    }, 1500);
+
+    // 添加戰鬥日誌
+    this.addLogEntry(
+      isEnemy ? `Player takes ${value.toFixed(1)} damage` : `Enemy takes ${value.toFixed(1)} ${isCrit ? 'CRIT' : ''} damage`,
+      isEnemy
+    );
+  }
+
+  addLogEntry(message, isEnemyAttack = false) {
+    const logTitle = document.querySelector('.combat-log .log-title');
+    if (!logTitle) return;
+
+    const logEntry = document.createElement('div');
+    logEntry.className = `log-entry ${isEnemyAttack ? 'enemy' : ''}`;
+    logEntry.textContent = message;
+
+    // 將日誌插入標題下方
+    logTitle.insertAdjacentElement('afterend', logEntry);
+
+    // 保持日誌滾動到底部
+    const logContainer = document.querySelector('.combat-log');
+    logContainer.scrollTop = logContainer.scrollHeight;
+  }
 }
+
+export default BattleSystem;
