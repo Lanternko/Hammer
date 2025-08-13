@@ -1,4 +1,6 @@
-// src/game/Player.js - 修復版
+// src/game/Player.js - 增加反甲支援
+import { applyBadgeEffectToPlayer } from '../data/badges.js';
+
 class Player {
   constructor() {
     this.hp = 100;
@@ -18,8 +20,15 @@ class Player {
       storm: false,          // 重錘風暴
       shield: false,         // 重錘護盾
       heal: false,           // 重錘恢復
-      fury: false            // 重錘狂怒
+      fury: false,           // 重錘狂怒
+      weight: false,         // 重錘加重
+      duration: false        // 重錘延續
     };
+    
+    // 特殊效果
+    this.hasReflectArmor = false;      // 反甲徽章
+    this.lifesteal = 0;                // 生命汲取
+    this.specialEffects = {};          // 其他特殊效果
     
     // 臨時狀態
     this.tempEffects = {
@@ -41,46 +50,29 @@ class Player {
   // 裝備徽章
   equipBadge(badge) {
     this.badges.push(badge);
-    this.applyBadgeEffect(badge);
+    applyBadgeEffectToPlayer(this, badge);
     console.log(`裝備徽章: ${badge.name}`);
   }
 
-  applyBadgeEffect(badge) {
-    if (badge.effect.maxHp) {
-      this.maxHp += badge.effect.maxHp;
-      this.hp += badge.effect.maxHp; // 也增加當前血量
-    }
-    if (badge.effect.attack) this.attack += badge.effect.attack;
-    if (badge.effect.armor) this.armor += badge.effect.armor;
-    if (badge.effect.attackSpeed) {
-      this.attackSpeed += badge.effect.attackSpeed;
-      this.attackFrame = Math.round(20 / this.attackSpeed);
-    }
-    if (badge.effect.critChance) this.critChance += badge.effect.critChance;
-    if (badge.effect.lifesteal) {
-      // 吸血效果暫時只記錄，之後在攻擊時實現
-      this.lifesteal = (this.lifesteal || 0) + badge.effect.lifesteal;
-    }
-    
-    // 重錘BD效果
-    if (badge.effect.hammerMastery) this.hammerEffects.mastery = true;
-    if (badge.effect.hammerStorm) this.hammerEffects.storm = true;
-    if (badge.effect.hammerShield) this.hammerEffects.shield = true;
-    if (badge.effect.hammerHeal) this.hammerEffects.heal = true;
-    if (badge.effect.hammerFury) this.hammerEffects.fury = true;
-  }
-
-  // 攻擊方法 - 加入重錘效果
+  // 攻擊方法 - 包含重錘效果和生命汲取
   performAttack() {
     let damage = this.attack;
     let isCrit = Math.random() < this.critChance || this.tempEffects.guaranteedCrit;
     let isHammerProc = false;
     
-    // 重錘精通：25%機率觸發
-    if (this.hammerEffects.mastery && Math.random() < 0.25) {
+    // 狂戰士效果：血量低於50%時攻擊力提升
+    if (this.specialEffects.berserker && this.hp / this.maxHp < 0.5) {
+      damage *= 1.3; // +30%攻擊力
+    }
+    
+    // 重錘精通：25%機率觸發（重錘加重提升至35%）
+    const hammerChance = this.hammerEffects.weight ? 0.35 : 0.25;
+    if (this.hammerEffects.mastery && Math.random() < hammerChance) {
       isHammerProc = true;
-      damage *= 1.5; // 150%傷害
-      console.log('🔨 重錘精通觸發！150%傷害');
+      // 重錘加重：傷害倍率170%，否則150%
+      const damageMultiplier = this.hammerEffects.weight ? 1.7 : 1.5;
+      damage *= damageMultiplier;
+      console.log(`🔨 重錘精通觸發！${(damageMultiplier * 100).toFixed(0)}%傷害`);
       
       // 觸發其他重錘效果
       this.triggerHammerEffects();
@@ -89,6 +81,12 @@ class Player {
     // 暴擊計算
     if (isCrit) {
       damage *= 2;
+    }
+    
+    // 生命汲取
+    if (this.lifesteal > 0) {
+      this.hp = Math.min(this.maxHp, this.hp + this.lifesteal);
+      console.log(`🩸 生命汲取：回復 ${this.lifesteal} 血量`);
     }
     
     // 重置保證暴擊狀態
@@ -111,7 +109,7 @@ class Player {
     // 重錘護盾：獲得10點護甲5秒
     if (this.hammerEffects.shield) {
       this.tempEffects.bonusArmor = 10;
-      this.tempEffects.bonusArmorDuration = 5.0; // 5秒 = 100 frames (20fps)
+      this.tempEffects.bonusArmorDuration = 5.0;
       console.log('🛡️ 重錘護盾：+10護甲 5秒');
     }
     
@@ -124,7 +122,7 @@ class Player {
     // 重錘狂怒：攻擊速度+50% 3秒
     if (this.hammerEffects.fury) {
       this.tempEffects.speedBoost = 1.5;
-      this.tempEffects.speedBoostDuration = 3.0; // 3秒 = 60 frames
+      this.tempEffects.speedBoostDuration = 3.0;
       this.updateAttackFrame();
       console.log('🔥 重錘狂怒：攻速+50% 3秒');
     }
@@ -132,7 +130,13 @@ class Player {
 
   // 更新攻擊間隔
   updateAttackFrame() {
-    const effectiveSpeed = this.attackSpeed * this.tempEffects.speedBoost;
+    let effectiveSpeed = this.attackSpeed * this.tempEffects.speedBoost;
+    
+    // 狂戰士效果：血量低於50%時攻速也提升
+    if (this.specialEffects.berserker && this.hp / this.maxHp < 0.5) {
+      effectiveSpeed *= 1.25; // +25%攻速
+    }
+    
     this.attackFrame = Math.round(20 / effectiveSpeed);
   }
 
@@ -142,10 +146,14 @@ class Player {
   }
 
   // 受到傷害
-  takeDamage(damage) {
-    const effectiveArmor = this.getEffectiveArmor();
-    const reduced = damage / (1 + effectiveArmor / 100);
-    const finalDamage = Math.max(1, reduced - this.flatReduction);
+  takeDamage(damage, ignoresArmor = false) {
+    let finalDamage = damage;
+    
+    if (!ignoresArmor) {
+      const effectiveArmor = this.getEffectiveArmor();
+      const reduced = damage / (1 + effectiveArmor / 100);
+      finalDamage = Math.max(1, reduced - this.flatReduction);
+    }
     
     this.hp = Math.max(0, this.hp - finalDamage);
     console.log(`受到 ${finalDamage.toFixed(1)} 傷害，剩餘 HP: ${this.hp}/${this.maxHp}`);
@@ -210,6 +218,16 @@ class Player {
       status.push(`😵 眩暈 (${this.tempEffects.stunDuration.toFixed(1)}s)`);
     }
     
+    // 狂戰士狀態
+    if (this.specialEffects.berserker && this.hp / this.maxHp < 0.5) {
+      status.push('🔴 狂戰士：攻擊+30%，攻速+25%');
+    }
+    
+    // 生命汲取
+    if (this.lifesteal > 0) {
+      status.push(`🩸 生命汲取: +${this.lifesteal}/攻擊`);
+    }
+    
     return status;
   }
 
@@ -223,11 +241,11 @@ class Player {
   levelUp() {
     this.level++;
     this.exp = 0;
-    this.expToNext = Math.floor(this.expToNext * 1.2); // 每級需要更多經驗
+    this.expToNext = Math.floor(this.expToNext * 1.2);
     
     // 升級獎勵
     this.maxHp += 10;
-    this.hp += 10; // 升級時回復血量
+    this.hp += 10;
     this.attack += 2;
     
     console.log(`升級！等級: ${this.level}, 血量+10, 攻擊+2`);
@@ -250,10 +268,12 @@ class Player {
       critChance: this.critChance,
       badges: this.badges.length,
       hammerEffects: this.hammerEffects,
-      tempEffects: this.tempEffects
+      tempEffects: this.tempEffects,
+      hasReflectArmor: this.hasReflectArmor,
+      lifesteal: this.lifesteal,
+      specialEffects: this.specialEffects
     };
   }
 }
 
-// 🔥 IMPORTANT: 確保這是正確的 default export
 export default Player;
