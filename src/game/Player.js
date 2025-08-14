@@ -27,35 +27,37 @@ class Player {
     
     // 當前狀態
     this.hp = this.getMaxHp();
-    this.badges = [];
+    
+    // 🔧 修復：確保 badges 數組正確初始化
+    this.badges = this.badges || [];
     this.currentFrame = 0;
     
     // 重錘BD相關狀態
     this.hammerEffects = {
-      mastery: false,        // 重錘精通
-      storm: false,          // 重錘風暴
-      shield: false,         // 重錘護盾
-      heal: false,           // 重錘恢復
-      fury: false,           // 重錘狂怒
-      weight: false,         // 重錘加重
-      duration: false        // 重錘延續
+      mastery: false,
+      storm: false,
+      shield: false,
+      heal: false,
+      fury: false,
+      weight: false,
+      duration: false
     };
     
     // 特殊效果
-    this.hasReflectArmor = false;      // 反甲徽章
-    this.lifesteal = 0;                // 固定生命汲取（相容性）
-    this.lifestealPercent = 0;         // 百分比生命汲取（新系統）
-    this.specialEffects = {};          // 其他特殊效果
+    this.hasReflectArmor = false;
+    this.lifesteal = 0;
+    this.lifestealPercent = 0;
+    this.specialEffects = {};
     
     // 臨時狀態
     this.tempEffects = {
-      guaranteedCrit: false,     // 保證暴擊
-      bonusArmor: 0,            // 額外護甲
-      bonusArmorDuration: 0,    // 額外護甲持續時間
-      speedBoost: 1.0,          // 攻速加成
-      speedBoostDuration: 0,    // 攻速加成持續時間
-      stunned: false,           // 眩暈狀態
-      stunDuration: 0           // 眩暈持續時間
+      guaranteedCrit: false,
+      bonusArmor: 0,
+      bonusArmorDuration: 0,
+      speedBoost: 1.0,
+      speedBoostDuration: 0,
+      stunned: false,
+      stunDuration: 0
     };
     
     // 經驗值系統
@@ -64,6 +66,8 @@ class Player {
     this.expToNext = 100;
     
     this.updateAttackFrame();
+    
+    console.log('✅ Player 初始化完成，badges 數組:', this.badges);
   }
 
   // 獲取有效屬性值
@@ -111,11 +115,92 @@ class Player {
     return Math.round(20 / this.getEffectiveAttackSpeed());
   }
 
-  // 裝備徽章
+  // 修復：安全的裝備徽章方法
   equipBadge(badge) {
-    this.badges.push(badge);
-    applyBadgeEffectToPlayer(this, badge);
-    console.log(`裝備徽章: ${badge.name}`);
+    try {
+      // 🔧 確保 badges 數組存在
+      if (!this.badges) {
+        this.badges = [];
+        console.warn('⚠️ badges 數組不存在，已重新初始化');
+      }
+
+      // 🔧 驗證 badge 對象
+      if (!badge) {
+        console.error('❌ 嘗試裝備空的徽章');
+        return;
+      }
+
+      if (!badge.name) {
+        console.error('❌ 徽章缺少名稱屬性:', badge);
+        return;
+      }
+
+      // 添加徽章到數組
+      this.badges.push(badge);
+      
+      // 🔧 安全應用徽章效果
+      this.applyBadgeEffectSafe(badge);
+      
+      console.log(`✅ 裝備徽章: ${badge.name}, 當前徽章數: ${this.badges.length}`);
+      
+    } catch (error) {
+      console.error('❌ 裝備徽章錯誤:', error, '徽章:', badge);
+    }
+  }
+
+  // 新增：安全的徽章效果應用
+  applyBadgeEffectSafe(badge) {
+    try {
+      // 檢查是否有徽章數據模組
+      if (typeof applyBadgeEffectToPlayer === 'function') {
+        applyBadgeEffectToPlayer(this, badge);
+      } else {
+        // 備用方案：直接應用基本效果
+        this.applyBasicBadgeEffect(badge);
+      }
+    } catch (error) {
+      console.error('❌ 應用徽章效果錯誤:', error);
+      // 嘗試備用方案
+      this.applyBasicBadgeEffect(badge);
+    }
+  }
+
+  // 新增：基本徽章效果應用（備用方案）
+  applyBasicBadgeEffect(badge) {
+    try {
+      if (!badge || !badge.effect) {
+        return;
+      }
+
+      const effect = badge.effect;
+      
+      // 重錘效果
+      if (effect.hammerMastery) this.hammerEffects.mastery = true;
+      if (effect.hammerStorm) this.hammerEffects.storm = true;
+      if (effect.hammerShield) this.hammerEffects.shield = true;
+      if (effect.hammerHeal) this.hammerEffects.heal = true;
+      if (effect.hammerFury) this.hammerEffects.fury = true;
+      if (effect.hammerWeight) this.hammerEffects.weight = true;
+      if (effect.hammerDuration) this.hammerEffects.duration = true;
+      
+      // 基礎屬性效果
+      if (effect.flatHp) this.applyFlatBonus('hp', effect.flatHp);
+      if (effect.flatAttack) this.applyFlatBonus('attack', effect.flatAttack);
+      if (effect.flatArmor) this.applyFlatBonus('armor', effect.flatArmor);
+      if (effect.flatAttackSpeed) this.applyFlatBonus('attackSpeed', effect.flatAttackSpeed);
+      if (effect.flatCritChance) this.applyFlatBonus('critChance', effect.flatCritChance);
+      if (effect.flatReduction) this.applyFlatBonus('flatReduction', effect.flatReduction);
+      
+      // 特殊效果
+      if (effect.reflectArmor) this.hasReflectArmor = true;
+      if (effect.lifestealPercent) this.lifestealPercent = (this.lifestealPercent || 0) + effect.lifestealPercent;
+      if (effect.lifesteal) this.lifesteal = (this.lifesteal || 0) + effect.lifesteal;
+      
+      console.log(`✅ 基本徽章效果已應用: ${badge.name}`);
+      
+    } catch (error) {
+      console.error('❌ 基本徽章效果應用錯誤:', error);
+    }
   }
 
   // 攻擊方法 - 包含平衡的重錘效果和百分比生命汲取
@@ -372,9 +457,23 @@ class Player {
     return status;
   }
 
-  // 獲取徽章描述（用於UI顯示）
+  // 修復：安全的獲取徽章描述
   getBadgeDescriptions() {
-    return this.badges.map(badge => `${badge.icon} ${badge.name}: ${badge.description}`);
+    try {
+      if (!this.badges || !Array.isArray(this.badges)) {
+        console.warn('⚠️ badges 不是有效數組，返回空數組');
+        return [];
+      }
+      
+      return this.badges.map(badge => {
+        if (!badge) return '未知徽章';
+        return `${badge.icon || '❓'} ${badge.name || '未知'}: ${badge.description || '無描述'}`;
+      });
+      
+    } catch (error) {
+      console.error('❌ 獲取徽章描述錯誤:', error);
+      return [];
+    }
   }
 
   gainExp(amount) {

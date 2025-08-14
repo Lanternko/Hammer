@@ -10,28 +10,110 @@ class GameManager {
   constructor() {
     console.log('🏗️ GameManager constructor called');
     
+    // 基礎屬性初始化
     this.currentLevel = 1;
-    this.player = new Player();
+    this.player = null;
     this.enemy = null;
     this.state = 'battle';
     this.gold = 0;
     this.diamonds = 0;
     this.battleSystem = null;
-    this.eventSystem = new EventSystem(this);
+    this.eventSystem = null;
     
-    // 保存戰鬥速度設定和暫停狀態
-    this.battleSpeed = 1; // 預設1倍速
-    this.isPaused = false; // 暫停狀態
+    // 戰鬥控制
+    this.battleSpeed = 1;
+    this.isPaused = false;
     
-    // 創建增強的UI管理器
-    this.enhancedUI = new EnhancedUIManager();
+    // 徽章繼承系統
+    this.inheritedBadges = [];
+    this.maxInheritedBadges = 1;
+    this.failureCount = 0;
     
-    // 給予開局徽章
-    this.giveStartingBadge();
-    // 新增：繼承徽章系統
-    this.inheritedBadges = []; // 從上一輪繼承的徽章
-    this.maxInheritedBadges = 1; // 最多繼承1個徽章
-    this.failureCount = 0; // 連續失敗次數
+    // 安全初始化：確保所有依賴都載入後再初始化玩家和系統
+    this.initializeAfterLoad();
+  }
+
+  // 新增：延遲初始化方法
+  async initializeAfterLoad() {
+    try {
+      // 確保模組載入完成
+      await this.waitForModules();
+      
+      // 初始化玩家
+      this.player = new Player();
+      
+      // 初始化事件系統
+      this.eventSystem = new EventSystem(this);
+      
+      // 創建增強UI管理器
+      this.enhancedUI = new EnhancedUIManager();
+      
+      // 給予開局徽章（安全版本）
+      this.giveStartingBadgeSafe();
+      
+      console.log('✅ GameManager 初始化完成');
+      
+    } catch (error) {
+      console.error('❌ GameManager 初始化失敗:', error);
+      this.showInitializationError(error);
+    }
+  }
+
+  // 新增：等待模組載入
+  async waitForModules() {
+    return new Promise((resolve) => {
+      // 檢查必要的類是否已載入
+      const checkModules = () => {
+        if (typeof Player !== 'undefined' && 
+            typeof EventSystem !== 'undefined' &&
+            typeof EnhancedUIManager !== 'undefined') {
+          resolve();
+        } else {
+          setTimeout(checkModules, 100);
+        }
+      };
+      checkModules();
+    });
+  }
+
+  // 新增：顯示初始化錯誤
+  showInitializationError(error) {
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 0, 0, 0.9);
+      color: white;
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+      z-index: 9999;
+      font-family: Arial, sans-serif;
+      max-width: 500px;
+      width: 90%;
+    `;
+    
+    errorDiv.innerHTML = `
+      <h2 style="margin-bottom: 15px;">🚨 遊戲初始化錯誤</h2>
+      <p style="margin-bottom: 15px;">錯誤信息: ${error.message}</p>
+      <p style="margin-bottom: 20px; font-size: 14px; opacity: 0.9;">
+        這通常是因為模組載入順序問題或依賴缺失。
+      </p>
+      <button onclick="location.reload()" style="
+        padding: 10px 20px;
+        background: white;
+        color: red;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 16px;
+      ">🔄 重新載入遊戲</button>
+    `;
+    
+    document.body.appendChild(errorDiv);
   }
 
   // 新增：暫停切換功能
@@ -41,10 +123,83 @@ class GameManager {
     }
   }
 
+  // 修復：安全的開局徽章給予
+  giveStartingBadgeSafe() {
+    try {
+      // 檢查玩家是否存在
+      if (!this.player) {
+        console.error('❌ Player not initialized');
+        return;
+      }
+
+      // 檢查 badges 數組是否存在
+      if (!this.player.badges) {
+        this.player.badges = [];
+      }
+
+      // 給予重錘精通徽章
+      const hammerBadge = {
+        key: 'hammerMastery',
+        name: '重錘精通',
+        description: '每次攻擊有25%機率造成150%傷害並眩暈敵人',
+        icon: '🔨',
+        effect: { hammerMastery: true },
+        rarity: 'legendary',
+        cost: 0
+      };
+      
+      // 安全裝備徽章
+      if (this.player.equipBadge && typeof this.player.equipBadge === 'function') {
+        this.player.equipBadge(hammerBadge);
+        console.log('🔨 獲得開局徽章: 重錘精通');
+      } else {
+        console.error('❌ Player.equipBadge method not found');
+      }
+
+      // 處理繼承徽章
+      this.handleInheritedBadges();
+      
+    } catch (error) {
+      console.error('❌ giveStartingBadge 錯誤:', error);
+    }
+  }
+
+  // 新增：處理繼承徽章
+  handleInheritedBadges() {
+    try {
+      if (this.inheritedBadges && this.inheritedBadges.length > 0) {
+        this.inheritedBadges.forEach(badge => {
+          if (badge && this.player && this.player.equipBadge) {
+            this.player.equipBadge(badge);
+            console.log(`🎁 繼承徽章: ${badge.name}`);
+            this.showInheritanceNotification(badge);
+          }
+        });
+        
+        // 清空繼承列表
+        this.inheritedBadges = [];
+      }
+    } catch (error) {
+      console.error('❌ 處理繼承徽章錯誤:', error);
+    }
+  }
+
+  // 修復：安全的遊戲開始
   startGame() {
-    console.log('🎮 遊戲啟動 - 準備第1關');
-    this.updateUI();
-    this.nextLevel();
+    try {
+      if (!this.player) {
+        console.error('❌ 無法開始遊戲：玩家未初始化');
+        return;
+      }
+      
+      console.log('🎮 遊戲啟動 - 準備第1關');
+      this.updateUI();
+      this.nextLevel();
+      
+    } catch (error) {
+      console.error('❌ 遊戲啟動錯誤:', error);
+      this.showInitializationError(error);
+    }
   }
 
   nextLevel() {

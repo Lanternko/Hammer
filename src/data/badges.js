@@ -3,7 +3,7 @@ export const BadgeData = {
   // === 重錘BD核心徽章 ===
   hammerMastery: {
     name: '重錘精通',
-    description: '每次攻擊有25%機率造成150%傷害並眩暈敵人(基於攻速調整)',
+    description: '每次攻擊有25%機率造成150%傷害並眩暈敵人',
     effect: { hammerMastery: true },
     cost: 0,
     rarity: 'legendary',
@@ -208,149 +208,226 @@ export const BadgeData = {
   }
 };
 
-// 應用徽章效果到玩家 - 修復為固定值系統
+// 🔧 修復：安全的徽章效果應用函數
 export function applyBadgeEffectToPlayer(player, badge) {
-  const effect = badge.effect;
-  
-  // 固定值效果 (徽章專用)
-  if (effect.flatHp) {
-    player.applyFlatBonus('hp', effect.flatHp);
-  }
-  if (effect.flatAttack) {
-    player.applyFlatBonus('attack', effect.flatAttack);
-  }
-  if (effect.flatArmor) {
-    player.applyFlatBonus('armor', effect.flatArmor);
-  }
-  if (effect.flatAttackSpeed) {
-    player.applyFlatBonus('attackSpeed', effect.flatAttackSpeed);
-  }
-  if (effect.flatCritChance) {
-    player.applyFlatBonus('critChance', effect.flatCritChance);
-  }
-  if (effect.flatReduction) {
-    player.applyFlatBonus('flatReduction', effect.flatReduction);
-  }
-  
-  // 修改：生命汲取改為百分比
-  if (effect.lifestealPercent) {
-    player.lifestealPercent = (player.lifestealPercent || 0) + effect.lifestealPercent;
-  }
-  // 保留舊的固定值生命汲取相容性
-  if (effect.lifesteal) {
-    player.lifesteal = (player.lifesteal || 0) + effect.lifesteal;
-  }
-  
-  // 重錘BD效果
-  if (effect.hammerMastery) player.hammerEffects.mastery = true;
-  if (effect.hammerStorm) player.hammerEffects.storm = true;
-  if (effect.hammerShield) player.hammerEffects.shield = true;
-  if (effect.hammerHeal) player.hammerEffects.heal = true;
-  if (effect.hammerFury) player.hammerEffects.fury = true;
-  if (effect.hammerWeight) player.hammerEffects.weight = true;
-  if (effect.hammerDuration) player.hammerEffects.duration = true;
-  
-  // 反甲效果
-  if (effect.reflectArmor) {
-    player.hasReflectArmor = true;
-  }
-  
-  // 特殊效果
-  if (effect.berserker) {
-    player.specialEffects = player.specialEffects || {};
-    player.specialEffects.berserker = true;
+  try {
+    // 驗證參數
+    if (!player) {
+      console.error('❌ applyBadgeEffectToPlayer: player 參數為空');
+      return;
+    }
+    
+    if (!badge) {
+      console.error('❌ applyBadgeEffectToPlayer: badge 參數為空');
+      return;
+    }
+    
+    if (!badge.effect) {
+      console.warn('⚠️ 徽章沒有效果定義:', badge.name);
+      return;
+    }
+    
+    const effect = badge.effect;
+    console.log(`🔧 正在應用徽章效果: ${badge.name}`, effect);
+    
+    // 固定值效果 (徽章專用)
+    if (effect.flatHp && typeof player.applyFlatBonus === 'function') {
+      player.applyFlatBonus('hp', effect.flatHp);
+    }
+    if (effect.flatAttack && typeof player.applyFlatBonus === 'function') {
+      player.applyFlatBonus('attack', effect.flatAttack);
+    }
+    if (effect.flatArmor && typeof player.applyFlatBonus === 'function') {
+      player.applyFlatBonus('armor', effect.flatArmor);
+    }
+    if (effect.flatAttackSpeed && typeof player.applyFlatBonus === 'function') {
+      player.applyFlatBonus('attackSpeed', effect.flatAttackSpeed);
+    }
+    if (effect.flatCritChance && typeof player.applyFlatBonus === 'function') {
+      player.applyFlatBonus('critChance', effect.flatCritChance);
+    }
+    if (effect.flatReduction && typeof player.applyFlatBonus === 'function') {
+      player.applyFlatBonus('flatReduction', effect.flatReduction);
+    }
+    
+    // 生命汲取效果
+    if (effect.lifestealPercent) {
+      player.lifestealPercent = (player.lifestealPercent || 0) + effect.lifestealPercent;
+    }
+    if (effect.lifesteal) {
+      player.lifesteal = (player.lifesteal || 0) + effect.lifesteal;
+    }
+    
+    // 重錘BD效果
+    if (!player.hammerEffects) {
+      player.hammerEffects = {
+        mastery: false, storm: false, shield: false, 
+        heal: false, fury: false, weight: false, duration: false
+      };
+    }
+    
+    if (effect.hammerMastery) player.hammerEffects.mastery = true;
+    if (effect.hammerStorm) player.hammerEffects.storm = true;
+    if (effect.hammerShield) player.hammerEffects.shield = true;
+    if (effect.hammerHeal) player.hammerEffects.heal = true;
+    if (effect.hammerFury) player.hammerEffects.fury = true;
+    if (effect.hammerWeight) player.hammerEffects.weight = true;
+    if (effect.hammerDuration) player.hammerEffects.duration = true;
+    
+    // 反甲效果
+    if (effect.reflectArmor) {
+      player.hasReflectArmor = true;
+    }
+    
+    // 特殊效果
+    if (effect.berserker) {
+      if (!player.specialEffects) player.specialEffects = {};
+      player.specialEffects.berserker = true;
+    }
+    
+    console.log(`✅ 徽章效果應用成功: ${badge.name}`);
+    
+  } catch (error) {
+    console.error('❌ 應用徽章效果時發生錯誤:', error);
+    console.error('徽章信息:', badge);
+    console.error('玩家信息:', player);
   }
 }
 
-// 商店徽章生成策略（三選一）
+// 🔧 修復：安全的隨機徽章生成
 export function getRandomBadges(count = 3, playerLevel = 1) {
-  let availableBadges = [];
-  
-  if (playerLevel <= 5) {
-    // 前期：更多基礎徽章和反甲
-    availableBadges = [
-      { key: 'armorBoost', weight: 3 },
-      { key: 'healthBoost', weight: 3 },
-      { key: 'powerBoost', weight: 3 },
-      { key: 'damageReduction', weight: 2 },
-      { key: 'hammerDuration', weight: 4 },
-      { key: 'reflectArmor', weight: 3 },
-      { key: 'critBoost', weight: 2 },
-      { key: 'magicFocus', weight: 1 },
-      { key: 'elementalRes', weight: 1 }
-    ];
-  } else if (playerLevel <= 10) {
-    // 中期：混合徽章
-    availableBadges = [
-      { key: 'hammerWeight', weight: 4 },
-      { key: 'hammerDuration', weight: 3 },
-      { key: 'reflectArmor', weight: 4 },
-      { key: 'armorMajor', weight: 2 },
-      { key: 'healthMajor', weight: 2 },
-      { key: 'powerBoost', weight: 3 },
-      { key: 'speedBoost', weight: 3 },
-      { key: 'vampiric', weight: 2 },
-      { key: 'rangedMastery', weight: 1 }
-    ];
-  } else {
-    // 後期：更多高級徽章
-    availableBadges = [
-      { key: 'hammerWeight', weight: 5 },
-      { key: 'armorMajor', weight: 3 },
-      { key: 'healthMajor', weight: 3 },
-      { key: 'speedBoost', weight: 4 },
-      { key: 'reflectArmor', weight: 3 },
-      { key: 'berserker', weight: 2 },
-      { key: 'guardian', weight: 2 },
-      { key: 'vampiric', weight: 3 },
-      { key: 'critBoost', weight: 2 },
-      { key: 'magicFocus', weight: 1 }
-    ];
-  }
-  
-  const selected = [];
-  const weightedPool = [];
-  
-  // 創建權重池
-  availableBadges.forEach(item => {
-    for (let i = 0; i < item.weight; i++) {
-      weightedPool.push(item.key);
+  try {
+    // 檢查 BadgeData 是否存在
+    if (!BadgeData || typeof BadgeData !== 'object') {
+      console.error('❌ BadgeData 未正確載入');
+      return [];
     }
-  });
-  
-  // 選擇不重複的徽章
-  const usedKeys = new Set();
-  for (let i = 0; i < count && weightedPool.length > 0; i++) {
-    let attempts = 0;
-    let selectedKey;
+
+    let availableBadges = [];
     
-    do {
-      const randomIndex = Math.floor(Math.random() * weightedPool.length);
-      selectedKey = weightedPool[randomIndex];
-      attempts++;
-    } while (usedKeys.has(selectedKey) && attempts < 20);
-    
-    if (!usedKeys.has(selectedKey)) {
-      usedKeys.add(selectedKey);
-      selected.push({
-        key: selectedKey,
-        ...BadgeData[selectedKey]
-      });
+    if (playerLevel <= 5) {
+      // 前期：更多基礎徽章
+      availableBadges = [
+        { key: 'armorBoost', weight: 3 },
+        { key: 'healthBoost', weight: 3 },
+        { key: 'powerBoost', weight: 3 },
+        { key: 'damageReduction', weight: 2 },
+        { key: 'hammerDuration', weight: 4 },
+        { key: 'reflectArmor', weight: 3 },
+        { key: 'critBoost', weight: 2 }
+      ];
+    } else if (playerLevel <= 10) {
+      // 中期：混合徽章
+      availableBadges = [
+        { key: 'hammerWeight', weight: 4 },
+        { key: 'hammerDuration', weight: 3 },
+        { key: 'reflectArmor', weight: 4 },
+        { key: 'armorMajor', weight: 2 },
+        { key: 'healthMajor', weight: 2 },
+        { key: 'powerBoost', weight: 3 },
+        { key: 'speedBoost', weight: 3 },
+        { key: 'vampiric', weight: 2 }
+      ];
+    } else {
+      // 後期：更多高級徽章
+      availableBadges = [
+        { key: 'hammerWeight', weight: 5 },
+        { key: 'armorMajor', weight: 3 },
+        { key: 'healthMajor', weight: 3 },
+        { key: 'speedBoost', weight: 4 },
+        { key: 'reflectArmor', weight: 3 },
+        { key: 'berserker', weight: 2 },
+        { key: 'guardian', weight: 2 },
+        { key: 'vampiric', weight: 3 },
+        { key: 'critBoost', weight: 2 }
+      ];
     }
+    
+    const selected = [];
+    const weightedPool = [];
+    
+    // 創建權重池
+    availableBadges.forEach(item => {
+      if (BadgeData[item.key]) {
+        for (let i = 0; i < item.weight; i++) {
+          weightedPool.push(item.key);
+        }
+      } else {
+        console.warn(`⚠️ 徽章 ${item.key} 在 BadgeData 中不存在`);
+      }
+    });
+    
+    // 選擇不重複的徽章
+    const usedKeys = new Set();
+    for (let i = 0; i < count && weightedPool.length > 0; i++) {
+      let attempts = 0;
+      let selectedKey;
+      
+      do {
+        const randomIndex = Math.floor(Math.random() * weightedPool.length);
+        selectedKey = weightedPool[randomIndex];
+        attempts++;
+      } while (usedKeys.has(selectedKey) && attempts < 20);
+      
+      if (!usedKeys.has(selectedKey) && BadgeData[selectedKey]) {
+        usedKeys.add(selectedKey);
+        selected.push({
+          key: selectedKey,
+          ...BadgeData[selectedKey]
+        });
+      }
+    }
+    
+    console.log(`✅ 生成 ${selected.length} 個徽章選項 (等級 ${playerLevel})`);
+    return selected;
+    
+  } catch (error) {
+    console.error('❌ 生成隨機徽章時發生錯誤:', error);
+    return [];
   }
-  
-  return selected;
 }
 
-// 獲取徽章稀有度顏色
+// 🔧 修復：安全的稀有度顏色獲取
 export function getBadgeRarityColor(rarity) {
-  switch(rarity) {
-    case 'common': return '#A0A0A0';
-    case 'uncommon': return '#4CAF50';
-    case 'rare': return '#2196F3';
-    case 'epic': return '#9C27B0';
-    case 'legendary': return '#FF9800';
-    default: return '#FFFFFF';
+  try {
+    const colors = {
+      'common': '#A0A0A0',
+      'uncommon': '#4CAF50',
+      'rare': '#2196F3',
+      'epic': '#9C27B0',
+      'legendary': '#FF9800'
+    };
+    
+    return colors[rarity] || '#FFFFFF';
+    
+  } catch (error) {
+    console.error('❌ 獲取稀有度顏色錯誤:', error);
+    return '#FFFFFF';
+  }
+}
+
+// 🔧 檢查模組載入狀態
+export function checkBadgeDataIntegrity() {
+  try {
+    const requiredBadges = [
+      'hammerMastery', 'hammerStorm', 'hammerShield', 'hammerHeal',
+      'hammerFury', 'hammerWeight', 'hammerDuration', 'reflectArmor',
+      'armorBoost', 'healthBoost', 'powerBoost', 'vampiric'
+    ];
+    
+    const missingBadges = requiredBadges.filter(key => !BadgeData[key]);
+    
+    if (missingBadges.length > 0) {
+      console.error('❌ 缺少必要的徽章數據:', missingBadges);
+      return false;
+    }
+    
+    console.log('✅ 徽章數據完整性檢查通過');
+    return true;
+    
+  } catch (error) {
+    console.error('❌ 徽章數據完整性檢查失敗:', error);
+    return false;
   }
 }
 
@@ -386,3 +463,18 @@ export const HammerBDStrategy = {
 console.log('🔨 重錘BD徽章系統已載入 (平衡版本)');
 console.log('⚡ 重錘眩暈時間現在與攻速反比，慢攻速=長眩暈');
 console.log('🩸 生命汲取改為攻擊力的百分比，不再偏向攻速');
+// 在模組載入時進行完整性檢查
+setTimeout(() => {
+  checkBadgeDataIntegrity();
+}, 100);
+
+console.log('✅ badges.js 載入完成');
+
+// 🔧 導出所有必要的函數和數據
+export default {
+  BadgeData,
+  applyBadgeEffectToPlayer,
+  getRandomBadges,
+  getBadgeRarityColor,
+  checkBadgeDataIntegrity
+};
