@@ -49,16 +49,16 @@ function showErrorMessage(title, message) {
 
 // 文件位置：main.js（替換 checkBasicEnvironment 函數）
 
-// 改進的基礎環境檢查（提供詳細診斷）
+// 修復：正確的 CSS 選擇器
 function checkBasicEnvironment() {
   try {
     console.log('🎮 檢查基礎環境...');
     
-    // 檢查必要的 DOM 元素（更詳細的檢查）
+    // 修復：正確的 CSS 選擇器（沒有空格表示同一元素有多個 class）
     const requiredElements = [
       { selector: '.round-counter', name: '關卡計數器' },
-      { selector: '.hero .character-card', name: '英雄卡片' },
-      { selector: '.enemy .character-card', name: '敵人卡片' },
+      { selector: '.character-card.hero', name: '英雄卡片' },  // 修復：移除空格
+      { selector: '.character-card.enemy', name: '敵人卡片' }, // 修復：移除空格
       { selector: '.stats-panel', name: '統計面板' },
       { selector: '.combat-log', name: '戰鬥日誌' }
     ];
@@ -115,7 +115,7 @@ function checkBasicEnvironment() {
   }
 }
 
-// 顯示 DOM 診斷信息
+// 更新的 DOM 診斷信息
 function showDOMDiagnostic(missingElements, foundElements) {
   const diagnosticDiv = document.createElement('div');
   diagnosticDiv.style.cssText = `
@@ -162,10 +162,10 @@ function showDOMDiagnostic(missingElements, foundElements) {
     <div style="margin-bottom: 20px; padding: 15px; background: rgba(0, 0, 0, 0.3); border-radius: 10px;">
       <h3 style="color: #ffd700; margin-bottom: 10px;">🔧 修復建議:</h3>
       <div style="font-size: 14px; line-height: 1.6;">
-        1. 檢查 index.html 是否包含所有必要的元素<br>
-        2. 確認 CSS 類名拼寫正確<br>
-        3. 檢查 HTML 結構是否完整<br>
-        4. 確認沒有 JavaScript 錯誤阻止 DOM 加載<br>
+        1. 確認 HTML 元素使用正確的 class 名稱<br>
+        2. 檢查是否有重複的元素ID或class衝突<br>
+        3. 確認 CSS 載入完成<br>
+        4. 檢查 JavaScript 錯誤是否阻止 DOM 渲染<br>
         5. 嘗試清除瀏覽器快取並重新載入
       </div>
     </div>
@@ -467,19 +467,19 @@ function waitForDOMReady() {
   });
 }
 
-// 更強健的初始化檢查
+// 同時修復 waitForElementsReady 函數
 async function waitForElementsReady() {
-  const maxAttempts = 10; // 最多嘗試 10 次
-  const delay = 200; // 每次嘗試間隔 200ms
+  const maxAttempts = 10;
+  const delay = 200;
   
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     console.log(`🔍 DOM 元素檢查 (第 ${attempt}/${maxAttempts} 次)...`);
     
-    // 檢查所有必要元素是否存在
+    // 修復：使用正確的選擇器
     const elements = [
       document.querySelector('.round-counter'),
-      document.querySelector('.hero .character-card'), 
-      document.querySelector('.enemy .character-card'),
+      document.querySelector('.character-card.hero'),     // 修復：移除空格
+      document.querySelector('.character-card.enemy'),    // 修復：移除空格
       document.querySelector('.stats-panel'),
       document.querySelector('.combat-log')
     ];
@@ -490,6 +490,21 @@ async function waitForElementsReady() {
       console.log(`✅ 所有 DOM 元素在第 ${attempt} 次嘗試中找到`);
       return true;
     }
+    
+    // 詳細診斷哪些元素缺失
+    const selectors = [
+      '.round-counter',
+      '.character-card.hero',
+      '.character-card.enemy', 
+      '.stats-panel',
+      '.combat-log'
+    ];
+    
+    elements.forEach((el, index) => {
+      if (!el) {
+        console.log(`⏳ 缺少元素: ${selectors[index]}`);
+      }
+    });
     
     console.log(`⏳ 第 ${attempt} 次嘗試中缺少元素，等待 ${delay}ms 後重試...`);
     
