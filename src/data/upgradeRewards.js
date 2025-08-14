@@ -1,4 +1,4 @@
-// src/data/upgradeRewards.js - 修復升級獎勵系統
+// src/data/upgradeRewards.js - 修復護甲獎勵為固定值
 export const UpgradeRewards = {
   // 基礎升級選項 - 主要給百分比增強
   baseUpgrades: [
@@ -26,10 +26,10 @@ export const UpgradeRewards = {
       id: 'armor_boost',
       name: '護甲強化',
       icon: '🛡️',
-      description: '護甲值 +15% (百分比)',
+      description: '護甲值 +10 (固定值)',
       type: 'armor',
-      value: 0.15,
-      isPercentage: true,
+      value: 10,
+      isPercentage: false,
       rarity: 'common'
     },
     {
@@ -120,9 +120,9 @@ export const UpgradeRewards = {
       id: 'fortress',
       name: '要塞體質',
       icon: '🏰',
-      description: '護甲+20%，固減+5',
+      description: '護甲+15，固減+5',
       type: 'fortress',
-      value: { armorPercent: 0.20, flatReduction: 5 },
+      value: { armor: 15, flatReduction: 5 },
       isPercentage: false,
       rarity: 'legendary'
     }
@@ -196,7 +196,7 @@ export function applyUpgradeToPlayer(player, upgrade) {
       break;
       
     case 'fortress':
-      player.applyPercentageBonus('armor', upgrade.value.armorPercent);
+      player.applyFlatBonus('armor', upgrade.value.armor);
       player.applyFlatBonus('flatReduction', upgrade.value.flatReduction);
       break;
   }

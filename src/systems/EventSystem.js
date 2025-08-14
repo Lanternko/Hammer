@@ -1,5 +1,5 @@
 // src/systems/EventSystem.js - 徽章可選擇
-import { getRandomBadges } from '../data/badges.js';
+import { getRandomBadges } from '../data/Badges.js';
 
 class EventSystem {
   constructor(gameManager) {

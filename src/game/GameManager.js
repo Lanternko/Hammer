@@ -19,14 +19,22 @@ class GameManager {
     this.battleSystem = null;
     this.eventSystem = new EventSystem(this);
     
-    // 保存戰鬥速度設定
+    // 保存戰鬥速度設定和暫停狀態
     this.battleSpeed = 1; // 預設1倍速
+    this.isPaused = false; // 暫停狀態
     
     // 創建增強的UI管理器
     this.enhancedUI = new EnhancedUIManager();
     
     // 給予開局徽章
     this.giveStartingBadge();
+  }
+
+  // 新增：暫停切換功能
+  togglePause() {
+    if (this.battleSystem) {
+      this.battleSystem.togglePause();
+    }
   }
 
   startGame() {
@@ -81,14 +89,16 @@ class GameManager {
   endBattle(won, battleStats = null) {
     console.log(`⚔️ 戰鬥結束 - ${won ? '✅ 勝利' : '❌ 失敗'}`);
     
+    if (!won) {
+      console.log('💀 玩家失敗，遊戲結束');
+      // 顯示死亡摘要
+      this.showDeathSummary(battleStats);
+      return;
+    }
+
     // 縮短戰鬥結果顯示時間到3秒
     if (battleStats && this.enhancedUI) {
       this.enhancedUI.showBattleResults(battleStats, this.player, 3000);
-    }
-    
-    if (!won) {
-      console.log('💀 玩家失敗，遊戲結束');
-      return this.endGame();
     }
 
     // 獲得金幣獎勵
@@ -110,6 +120,141 @@ class GameManager {
     setTimeout(() => {
       this.showLevelUpChoice(goldReward);
     }, 1000);
+  }
+
+  // 新增：死亡摘要顯示
+  showDeathSummary(battleStats) {
+    const deathDiv = document.createElement('div');
+    deathDiv.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    `;
+
+    const battleDuration = battleStats ? (Date.now() - battleStats.startTime) / 1000 : 0;
+    const avgDamage = battleStats && battleStats.playerAttackCount > 0 ? 
+      (battleStats.playerTotalDamage / battleStats.playerAttackCount) : 0;
+    const avgDamageTaken = battleStats && battleStats.enemyAttackCount > 0 ? 
+      (battleStats.playerDamageReceived / battleStats.enemyAttackCount) : 0;
+
+    deathDiv.innerHTML = `
+      <div style="
+        background: linear-gradient(135deg, #8B0000, #4B0000);
+        padding: 40px;
+        border-radius: 20px;
+        text-align: center;
+        color: white;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+        border: 2px solid #ff6b6b;
+        max-width: 700px;
+        width: 90%;
+      ">
+        <div style="font-size: 48px; margin-bottom: 20px;">💀</div>
+        <h2 style="font-size: 32px; margin-bottom: 15px; color: #ff6b6b;">征程結束</h2>
+        <p style="font-size: 20px; margin-bottom: 20px;">你在第 ${this.currentLevel} 關倒下了</p>
+        
+        <div style="text-align: left; background: rgba(0, 0, 0, 0.5); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+          <h3 style="color: #ff6b6b; margin-bottom: 15px; text-align: center;">💀 最後一戰詳情</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 16px;">
+            <div>⚔️ 敵人: <span style="color: #ffd700; font-weight: bold;">${this.enemy ? this.enemy.getDisplayName() : '未知'}</span></div>
+            <div>⏱️ 戰鬥時長: <span style="color: #ffd700; font-weight: bold;">${battleDuration.toFixed(1)}秒</span></div>
+            <div>❤️ 敵人血量: <span style="color: #ff6b6b; font-weight: bold;">${this.enemy ? `${Math.round(this.enemy.hp)}/${this.enemy.maxHp}` : 'N/A'}</span></div>
+            <div>🗡️ 敵人攻擊: <span style="color: #ff6b6b; font-weight: bold;">${this.enemy ? this.enemy.attack : 'N/A'}</span></div>
+            <div>📊 你的平均傷害: <span style="color: #4ecdc4; font-weight: bold;">${avgDamage.toFixed(1)}</span></div>
+            <div>📉 你的平均受傷: <span style="color: #ff6b6b; font-weight: bold;">${avgDamageTaken.toFixed(1)}</span></div>
+            <div>🛡️ 你的護甲: <span style="color: #4ecdc4; font-weight: bold;">${this.player.getEffectiveArmor()}</span></div>
+            <div>🔰 你的固減: <span style="color: #4ecdc4; font-weight: bold;">${this.player.flatReduction}</span></div>
+          </div>
+        </div>
+        
+        <div style="background: rgba(0, 0, 0, 0.5); padding: 15px; border-radius: 15px; margin-bottom: 20px;">
+          <h4 style="color: #ffd700; margin-bottom: 10px;">🎯 戰敗分析</h4>
+          <div style="font-size: 14px; line-height: 1.6; text-align: left;">
+            ${this.getDeathAnalysis()}
+          </div>
+        </div>
+        
+        <div style="font-size: 16px; opacity: 0.9; margin-bottom: 20px;">
+          <p>💎 本輪獲得鑽石: ${Math.floor(this.currentLevel / 5)}</p>
+          <p>🎖️ 擁有徽章: ${this.player.badges.length}</p>
+          <p>💰 剩餘金幣: ${this.gold}</p>
+        </div>
+        
+        <button onclick="this.parentElement.parentElement.remove(); window.gameManager.endGame();" style="
+          background: #ff6b6b;
+          color: white;
+          border: none;
+          padding: 15px 30px;
+          border-radius: 10px;
+          cursor: pointer;
+          font-size: 18px;
+          font-weight: bold;
+          transition: background 0.3s ease;
+        " 
+        onmouseover="this.style.background='#ff5252'" 
+        onmouseout="this.style.background='#ff6b6b'">重新開始 (5秒後自動)</button>
+      </div>
+    `;
+
+    document.body.appendChild(deathDiv);
+
+    // 5秒後自動重新開始
+    setTimeout(() => {
+      if (deathDiv.parentNode) {
+        deathDiv.remove();
+      }
+      this.endGame();
+    }, 5000);
+  }
+
+  // 新增：死亡分析
+  getDeathAnalysis() {
+    const analyses = [];
+    
+    if (this.enemy) {
+      const enemyDPS = this.enemy.attack * this.enemy.attackSpeed;
+      const playerDPS = this.player.getEffectiveAttack() * this.player.getEffectiveAttackSpeed();
+      
+      if (enemyDPS > playerDPS * 1.5) {
+        analyses.push('• 敵人的 DPS 遠超過你，考慮提升攻擊力或攻速');
+      }
+      
+      if (this.player.getEffectiveArmor() < this.enemy.attack * 0.5) {
+        analyses.push('• 護甲不足以抵擋敵人攻擊，建議提升防禦');
+      }
+      
+      if (this.player.flatReduction < 5) {
+        analyses.push('• 固定減傷偏低，考慮購買相關徽章');
+      }
+      
+      if (!this.player.hammerEffects.mastery) {
+        analyses.push('• 缺少重錘精通，這是核心徽章');
+      } else if (!this.player.hammerEffects.weight) {
+        analyses.push('• 考慮購買重錘加重來提升觸發率');
+      }
+      
+      if (this.player.lifesteal === 0) {
+        analyses.push('• 沒有生命汲取，考慮購買吸血徽章');
+      }
+      
+      if (this.currentLevel > 10 && this.player.badges.length < 4) {
+        analyses.push('• 徽章數量不足，多利用商店強化');
+      }
+    }
+    
+    if (analyses.length === 0) {
+      analyses.push('• 這是一場勢均力敵的戰鬥，運氣也很重要');
+      analyses.push('• 嘗試不同的徽章組合或提升屬性');
+    }
+    
+    return analyses.join('<br>');
   }
 
   showLevelUpChoice(goldReward) {
@@ -229,9 +374,16 @@ class GameManager {
     let newValue;
     
     if (upgrade.isPercentage) {
-      newValue = Math.floor(currentValue * (1 + upgrade.value));
-      return `${Math.floor(currentValue)} → ${newValue} (+${(upgrade.value * 100).toFixed(0)}%)`;
+      newValue = currentValue * (1 + upgrade.value);
+      
+      // 根據類型決定顯示格式
+      if (upgrade.type === 'attackSpeed') {
+        return `${currentValue.toFixed(2)} → ${newValue.toFixed(2)} (+${(upgrade.value * 100).toFixed(0)}%)`;
+      } else {
+        return `${Math.floor(currentValue)} → ${Math.floor(newValue)} (+${(upgrade.value * 100).toFixed(0)}%)`;
+      }
     } else {
+      // 固定值效果
       if (upgrade.type === 'critChance') {
         // 暴擊率特殊處理：顯示百分比
         const currentPercent = (currentValue * 100).toFixed(0);
@@ -239,9 +391,28 @@ class GameManager {
         return `${currentPercent}% → ${newPercent}% (+${(upgrade.value * 100).toFixed(0)}%)`;
       } else if (upgrade.type === 'attackSpeed') {
         // 攻速保留小數點
-        newValue = (currentValue + upgrade.value).toFixed(2);
-        return `${currentValue.toFixed(2)} → ${newValue} (+${upgrade.value.toFixed(2)})`;
+        newValue = currentValue + upgrade.value;
+        return `${currentValue.toFixed(2)} → ${newValue.toFixed(2)} (+${upgrade.value.toFixed(2)})`;
+      } else if (upgrade.type === 'lifesteal') {
+        // 生命汲取
+        newValue = currentValue + upgrade.value;
+        return `${currentValue} → ${newValue} (+${upgrade.value})`;
+      } else if (upgrade.type === 'flatReduction') {
+        // 固定減傷
+        newValue = currentValue + upgrade.value;
+        return `${currentValue} → ${newValue} (+${upgrade.value})`;
+      } else if (upgrade.type === 'berserker') {
+        // 狂戰士特殊效果
+        return `解鎖狂戰士效果 (血量<50%時攻擊+${(upgrade.value * 100).toFixed(0)}%)`;
+      } else if (upgrade.type === 'fortress') {
+        // 要塞體質組合效果
+        const currentArmor = this.player.getEffectiveArmor();
+        const currentFlatRed = this.player.flatReduction;
+        const newArmor = currentArmor + upgrade.value.armor;
+        const newFlatRed = currentFlatRed + upgrade.value.flatReduction;
+        return `護甲: ${currentArmor} → ${newArmor} (+${upgrade.value.armor}), 固減: ${currentFlatRed} → ${newFlatRed} (+${upgrade.value.flatReduction})`;
       } else {
+        // 其他固定值效果
         newValue = Math.floor(currentValue + upgrade.value);
         return `${Math.floor(currentValue)} → ${newValue} (+${upgrade.value})`;
       }
@@ -316,7 +487,7 @@ class GameManager {
         rarity: 'legendary'
       },
       {
-        key: 'hammerShield',
+        key: 'hammerShield', 
         name: '重錘護盾',
         description: '重錘精通觸發時，獲得10點護甲持續5秒',
         icon: '🛡️',
@@ -344,68 +515,110 @@ class GameManager {
     const milestoneIndex = (this.currentLevel / 5) - 1;
     const badge = milestoneBadges[milestoneIndex] || milestoneBadges[0];
     
-    this.player.equipBadge(badge);
-    
-    // 顯示徽章獲得動畫
-    this.showBadgeReward(badge);
+    // 顯示里程碑徽章選擇界面，而不是自動給予
+    this.showMilestoneBadgeChoice(badge);
   }
 
-  showBadgeReward(badge) {
+  // 新增：里程碑徽章選擇界面
+  showMilestoneBadgeChoice(badge) {
     const badgeDiv = document.createElement('div');
     badgeDiv.style.cssText = `
       position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: linear-gradient(135deg, #FFD700, #FFA500);
-      color: white;
-      padding: 30px;
-      border-radius: 20px;
-      text-align: center;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
       z-index: 2000;
-      box-shadow: 0 20px 40px rgba(255, 215, 0, 0.4);
-      animation: badgePulse 0.6s ease-out;
     `;
 
     badgeDiv.innerHTML = `
-      <div style="font-size: 48px; margin-bottom: 15px;">
-        ${badge.icon}
+      <div style="
+        background: linear-gradient(135deg, #FFD700, #FFA500);
+        color: white;
+        padding: 40px;
+        border-radius: 20px;
+        text-align: center;
+        box-shadow: 0 20px 40px rgba(255, 215, 0, 0.4);
+        animation: badgePulse 0.6s ease-out;
+        max-width: 500px;
+        width: 90%;
+      ">
+        <div style="font-size: 48px; margin-bottom: 15px;">
+          ${badge.icon}
+        </div>
+        <h2 style="font-size: 24px; margin-bottom: 10px;">
+          🎉 里程碑獎勵！
+        </h2>
+        <h3 style="font-size: 20px; margin-bottom: 15px;">
+          ${badge.name}
+        </h3>
+        <p style="font-size: 16px; opacity: 0.9; margin-bottom: 20px; line-height: 1.4;">
+          ${badge.description}
+        </p>
+        <div style="
+          margin-bottom: 20px;
+          padding: 8px 15px;
+          background: ${this.getRarityColor(badge.rarity)};
+          color: white;
+          border-radius: 20px;
+          font-size: 14px;
+          font-weight: bold;
+          display: inline-block;
+        ">
+          ${this.getRarityText(badge.rarity)} 徽章
+        </div>
+        <button onclick="this.parentElement.parentElement.remove(); window.gameManager.acceptMilestoneBadge()" style="
+          background: #4CAF50;
+          color: white;
+          border: none;
+          padding: 15px 30px;
+          border-radius: 10px;
+          cursor: pointer;
+          font-size: 18px;
+          font-weight: bold;
+          transition: background 0.3s ease;
+        " 
+        onmouseover="this.style.background='#45a049'" 
+        onmouseout="this.style.background='#4CAF50'">✅ 獲得徽章</button>
       </div>
-      <h2 style="font-size: 24px; margin-bottom: 10px;">
-        里程碑獎勵！
-      </h2>
-      <h3 style="font-size: 20px; margin-bottom: 10px;">
-        ${badge.name}
-      </h3>
-      <p style="font-size: 16px; opacity: 0.9;">
-        ${badge.description}
-      </p>
     `;
 
     // 添加動畫
     const style = document.createElement('style');
     style.textContent = `
       @keyframes badgePulse {
-        0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
-        50% { transform: translate(-50%, -50%) scale(1.1); }
-        100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        0% { transform: scale(0.5); opacity: 0; }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); opacity: 1; }
       }
     `;
     document.head.appendChild(style);
 
     document.body.appendChild(badgeDiv);
+    
+    // 保存當前徽章供接受時使用
+    this.pendingMilestoneBadge = badge;
 
-    // 3秒後移除
+    // 清理動畫樣式
     setTimeout(() => {
-      if (badgeDiv.parentNode) {
-        badgeDiv.remove();
-      }
       if (style.parentNode) {
         style.remove();
       }
-    }, 3000);
+    }, 1000);
+  }
 
-    console.log(`🎁 獲得里程碑徽章: ${badge.name}`);
+  // 新增：接受里程碑徽章
+  acceptMilestoneBadge() {
+    if (this.pendingMilestoneBadge) {
+      this.player.equipBadge(this.pendingMilestoneBadge);
+      console.log(`🎁 獲得里程碑徽章: ${this.pendingMilestoneBadge.name}`);
+      this.pendingMilestoneBadge = null;
+    }
   }
 
   triggerEvent() {
@@ -556,13 +769,43 @@ class GameManager {
       heroName.textContent = `🔨 重錘英雄 (${Math.round(this.player.hp)}/${this.player.maxHp})`;
     }
 
-    // 更新統計面板
+    // 更新統計面板 - 添加固定減傷
+    const statsPanel = document.querySelector('.stats-panel');
+    if (statsPanel) {
+      // 檢查是否需要添加固定減傷行
+      const statRows = statsPanel.querySelectorAll('.stat-row');
+      const hasFixedReduction = Array.from(statRows).some(row => 
+        row.querySelector('.stat-label')?.textContent?.includes('Fixed Damage Reduction') ||
+        row.querySelector('.stat-label')?.textContent?.includes('固定減傷')
+      );
+      
+      if (!hasFixedReduction && statRows.length >= 4) {
+        // 在最後一個統計行後添加固定減傷
+        const newRow = document.createElement('div');
+        newRow.className = 'stat-row';
+        newRow.innerHTML = `
+          <div class="stat-label">
+            <span>🔰</span>
+            固定減傷
+          </div>
+          <div class="stat-value">${this.player.flatReduction}</div>
+        `;
+        statsPanel.appendChild(newRow);
+      }
+    }
+
+    // 更新現有統計值
     const stats = document.querySelectorAll('.stat-value');
     if (stats.length >= 4) {
       stats[0].textContent = this.player.getEffectiveAttack().toFixed(1);
       stats[1].textContent = this.player.getEffectiveAttackSpeed().toFixed(2);
       stats[2].textContent = this.player.getEffectiveArmor().toFixed(1);
       stats[3].textContent = (this.player.critChance * 100).toFixed(0) + '%';
+      
+      // 更新固定減傷（如果存在第5個統計值）
+      if (stats[4]) {
+        stats[4].textContent = this.player.flatReduction.toString();
+      }
     }
 
     // 更新玩家血條
@@ -732,8 +975,8 @@ class EnhancedUIManager {
       : '<div style="opacity: 0.6; font-size: 13px;">暫無效果</div>';
   }
 
-  // 縮短戰鬥結果顯示時間
-  showBattleResults(battleStats, player, displayTime = 3000) {
+  // 縮短戰鬥結果顯示時間，改為點擊結束
+  showBattleResults(battleStats, player, displayTime = 0) {
     const resultsDiv = document.createElement('div');
     resultsDiv.style.cssText = `
       position: fixed;
@@ -749,6 +992,7 @@ class EnhancedUIManager {
       text-align: center;
       z-index: 1500;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      cursor: pointer;
     `;
 
     const battleDuration = (Date.now() - battleStats.startTime) / 1000;
@@ -773,43 +1017,19 @@ class EnhancedUIManager {
         <div>🛡️ 受擊次數: <span style="color: #ccc; font-weight: bold;">${battleStats.enemyAttackCount}</span></div>
         <div>📉 平均受傷: <span style="color: #ccc; font-weight: bold;">${avgDamageTaken.toFixed(1)}</span></div>
       </div>
-      <button onclick="this.parentElement.remove()" style="
-        background: #4ecdc4;
-        color: white;
-        border: none;
-        padding: 12px 25px;
-        border-radius: 10px;
-        cursor: pointer;
-        font-size: 16px;
-        font-weight: bold;
-        transition: background 0.3s ease;
-      " 
-      onmouseover="this.style.background='#45b7b8'" 
-      onmouseout="this.style.background='#4ecdc4'">繼續 (${(displayTime/1000).toFixed(0)}秒後自動關閉)</button>
+      <div style="background: rgba(78, 205, 196, 0.2); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+        <p style="color: #4ecdc4; font-size: 16px; font-weight: bold; margin: 0;">
+          💡 點擊螢幕任意位置繼續
+        </p>
+      </div>
     `;
 
+    // 點擊任意位置關閉
+    resultsDiv.addEventListener('click', () => {
+      resultsDiv.remove();
+    });
+
     document.body.appendChild(resultsDiv);
-
-    // 倒數計時
-    let timeLeft = displayTime / 1000;
-    const button = resultsDiv.querySelector('button');
-    const countdown = setInterval(() => {
-      timeLeft--;
-      if (timeLeft > 0) {
-        button.textContent = `繼續 (${timeLeft}秒後自動關閉)`;
-      } else {
-        clearInterval(countdown);
-        button.textContent = '繼續';
-      }
-    }, 1000);
-
-    // 縮短自動關閉時間
-    setTimeout(() => {
-      if (resultsDiv.parentNode) {
-        resultsDiv.remove();
-      }
-      clearInterval(countdown);
-    }, displayTime);
   }
 }
 

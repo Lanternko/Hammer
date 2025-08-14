@@ -1,9 +1,9 @@
-// src/data/badges.js - 修復徽章系統 (徽章給固定值，升級給百分比)
+// src/data/badges.js - 平衡重錘機制與吸血效果
 export const BadgeData = {
   // === 重錘BD核心徽章 ===
   hammerMastery: {
     name: '重錘精通',
-    description: '每次攻擊有25%機率造成150%傷害並眩暈敵人1秒',
+    description: '每次攻擊有25%機率造成150%傷害並眩暈敵人(基於攻速調整)',
     effect: { hammerMastery: true },
     cost: 0,
     rarity: 'legendary',
@@ -58,7 +58,7 @@ export const BadgeData = {
   
   hammerDuration: {
     name: '重錘延續',
-    description: '重錘精通的眩暈時間延長至2秒',
+    description: '重錘精通的眩暈時間基礎值提升至2秒',
     effect: { hammerDuration: true },
     cost: 8,
     rarity: 'epic',
@@ -144,8 +144,8 @@ export const BadgeData = {
   
   vampiric: {
     name: '生命汲取',
-    description: '攻擊時回復3點生命值 (固定值)',
-    effect: { lifesteal: 3 },
+    description: '攻擊時回復血量(基於攻擊力百分比)',
+    effect: { lifestealPercent: 0.15 }, // 改為攻擊力的15%
     cost: 9,
     rarity: 'rare',
     icon: '🩸'
@@ -231,6 +231,12 @@ export function applyBadgeEffectToPlayer(player, badge) {
   if (effect.flatReduction) {
     player.applyFlatBonus('flatReduction', effect.flatReduction);
   }
+  
+  // 修改：生命汲取改為百分比
+  if (effect.lifestealPercent) {
+    player.lifestealPercent = (player.lifestealPercent || 0) + effect.lifestealPercent;
+  }
+  // 保留舊的固定值生命汲取相容性
   if (effect.lifesteal) {
     player.lifesteal = (player.lifesteal || 0) + effect.lifesteal;
   }
@@ -368,8 +374,15 @@ export const HammerBDStrategy = {
     burstBuild: ['hammerMastery', 'hammerStorm', 'hammerWeight', 'critBoost', 'speedBoost'],
     // 控制流派
     controlBuild: ['hammerMastery', 'hammerDuration', 'hammerShield', 'vampiric', 'damageReduction']
+  },
+  
+  balanceNotes: {
+    hammerStun: '重錘眩暈時間現在基於攻速調整，慢速武器眩暈更久',
+    lifesteal: '生命汲取改為攻擊力百分比，避免純攻速收益',
+    description: '這些改動讓重錘BD更符合慢速重型武器的特色'
   }
 };
 
-console.log('🔨 重錘BD徽章系統已載入 (固定值版本)');
-console.log('⚡ 升級給百分比，徽章給固定值，兩者相乘效果更好');
+console.log('🔨 重錘BD徽章系統已載入 (平衡版本)');
+console.log('⚡ 重錘眩暈時間現在與攻速反比，慢攻速=長眩暈');
+console.log('🩸 生命汲取改為攻擊力的百分比，不再偏向攻速');

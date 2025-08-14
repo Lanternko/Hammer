@@ -1,4 +1,4 @@
-// src/game/Player.js - 修復屬性計算
+// src/game/Player.js - 平衡重錘機制版本
 import { applyBadgeEffectToPlayer } from '../data/Badges.js';
 
 class Player {
@@ -43,7 +43,8 @@ class Player {
     
     // 特殊效果
     this.hasReflectArmor = false;      // 反甲徽章
-    this.lifesteal = 0;                // 生命汲取
+    this.lifesteal = 0;                // 固定生命汲取（相容性）
+    this.lifestealPercent = 0;         // 百分比生命汲取（新系統）
     this.specialEffects = {};          // 其他特殊效果
     
     // 臨時狀態
@@ -117,7 +118,7 @@ class Player {
     console.log(`裝備徽章: ${badge.name}`);
   }
 
-  // 攻擊方法 - 包含重錘效果和生命汲取
+  // 攻擊方法 - 包含平衡的重錘效果和百分比生命汲取
   performAttack() {
     let damage = this.getEffectiveAttack();
     let isCrit = Math.random() < this.critChance || this.tempEffects.guaranteedCrit;
@@ -146,11 +147,8 @@ class Player {
       damage *= 2;
     }
     
-    // 生命汲取
-    if (this.lifesteal > 0) {
-      this.hp = Math.min(this.maxHp, this.hp + this.lifesteal);
-      console.log(`🩸 生命汲取：回復 ${this.lifesteal} 血量`);
-    }
+    // 平衡的生命汲取系統
+    this.applyLifesteal(damage);
     
     // 重置保證暴擊狀態
     this.tempEffects.guaranteedCrit = false;
@@ -160,6 +158,26 @@ class Player {
       isCrit: isCrit,
       isHammerProc: isHammerProc
     };
+  }
+
+  // 新增：平衡的生命汲取系統
+  applyLifesteal(damage) {
+    let totalLifesteal = 0;
+    
+    // 固定值生命汲取（舊系統相容性）
+    if (this.lifesteal > 0) {
+      totalLifesteal += this.lifesteal;
+    }
+    
+    // 百分比生命汲取（新系統）
+    if (this.lifestealPercent > 0) {
+      totalLifesteal += this.getEffectiveAttack() * this.lifestealPercent;
+    }
+    
+    if (totalLifesteal > 0) {
+      this.hp = Math.min(this.maxHp, this.hp + totalLifesteal);
+      console.log(`🩸 生命汲取：回復 ${totalLifesteal.toFixed(1)} 血量`);
+    }
   }
 
   triggerHammerEffects() {
@@ -188,6 +206,24 @@ class Player {
       this.tempEffects.speedBoostDuration = 3.0;
       console.log('🔥 重錘狂怒：攻速+50% 3秒');
     }
+  }
+
+  // 新增：計算平衡的重錘眩暈時間
+  getHammerStunDuration() {
+    // 基礎眩暈時間：重錘延續=2秒，否則1秒
+    let baseDuration = this.hammerEffects.duration ? 2.0 : 1.0;
+    
+    // 根據攻速調整眩暈時間：攻速越慢，眩暈越久
+    // 基準攻速0.5，眩暈時間乘數 = (0.5 / 當前攻速)^0.5
+    const baseSpeed = 0.5;
+    const currentSpeed = this.getEffectiveAttackSpeed();
+    const speedRatio = Math.pow(baseSpeed / currentSpeed, 0.5);
+    
+    // 限制眩暈時間在合理範圍內 (0.5秒 到 4秒)
+    const adjustedDuration = Math.max(0.5, Math.min(4.0, baseDuration * speedRatio));
+    
+    console.log(`🔨 重錘眩暈：基礎${baseDuration}s，攻速${currentSpeed.toFixed(2)}，調整至${adjustedDuration.toFixed(1)}s`);
+    return adjustedDuration;
   }
 
   // 更新攻擊間隔
@@ -321,9 +357,16 @@ class Player {
       status.push('🔴 狂戰士：攻擊+30%，攻速+25%');
     }
     
-    // 生命汲取
+    // 生命汲取顯示
+    const lifestealDisplay = [];
     if (this.lifesteal > 0) {
-      status.push(`🩸 生命汲取: +${this.lifesteal}/攻擊`);
+      lifestealDisplay.push(`固定${this.lifesteal}`);
+    }
+    if (this.lifestealPercent > 0) {
+      lifestealDisplay.push(`${(this.lifestealPercent * 100).toFixed(0)}%攻擊力`);
+    }
+    if (lifestealDisplay.length > 0) {
+      status.push(`🩸 生命汲取: ${lifestealDisplay.join(' + ')}`);
     }
     
     return status;
@@ -374,6 +417,7 @@ class Player {
       tempEffects: this.tempEffects,
       hasReflectArmor: this.hasReflectArmor,
       lifesteal: this.lifesteal,
+      lifestealPercent: this.lifestealPercent,
       specialEffects: this.specialEffects,
       // 分離的屬性
       baseStats: {
