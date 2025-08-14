@@ -1,4 +1,4 @@
-// src/systems/BattleSystem.js - 最終修復版
+// src/systems/BattleSystem.js - 優化版本
 class BattleSystem {
   constructor(player, enemy, gameManager) {
     this.player = player;
@@ -9,7 +9,7 @@ class BattleSystem {
     this.animationId = null;
     this.lastFrameTime = 0;
     
-    // 戰鬥速度控制（可選3倍速）
+    // 戰鬥速度控制（新增10倍速）
     this.battleSpeed = 1; // 預設1倍速
     this.baseDeltaTime = 0.1; // 基礎10fps
     this.deltaTime = this.baseDeltaTime / this.battleSpeed;
@@ -22,45 +22,137 @@ class BattleSystem {
       enemyAttackCount: 0,
       hammerProcCount: 0,
       critCount: 0,
-      playerDamageDealtCount: 0, // 反甲徽章計數器
+      playerDamageDealtCount: 0,
       startTime: Date.now()
     };
     
-    // 初始化Combat Log
-    this.initializeCombatLog();
+    // 初始化戰鬥信息面板
+    this.initializeCombatInfo();
   }
 
-  initializeCombatLog() {
-    const combatLog = document.querySelector('.combat-log');
-    if (combatLog) {
-      // 清空舊日誌
-      const existingEntries = combatLog.querySelectorAll('.log-entry');
+  // 新增：創建戰鬥信息面板（替代原本的 Combat Log）
+  initializeCombatInfo() {
+    const combatInfo = document.querySelector('.combat-log');
+    if (combatInfo) {
+      // 清空舊內容
+      const existingEntries = combatInfo.querySelectorAll('.log-entry');
       existingEntries.forEach(entry => entry.remove());
       
-      // 確保日誌容器可以滾動
-      combatLog.style.overflowY = 'auto';
-      combatLog.style.height = '200px';
+      // 修改標題
+      const logTitle = combatInfo.querySelector('.log-title');
+      if (logTitle) {
+        logTitle.textContent = '📊 戰鬥數據';
+      }
       
-      this.addCombatLogEntry('⚔️ 戰鬥開始！');
-      this.addCombatLogEntry(`👤 玩家: ${this.player.hp}/${this.player.maxHp} HP, ${this.player.attack} 攻擊`);
-      this.addCombatLogEntry(`👹 敵人: ${this.enemy.hp}/${this.enemy.maxHp} HP, ${this.enemy.attack} 攻擊, ${this.enemy.defense} 防禦`);
-      this.addCombatLogEntry(`🛡️ 減傷機制: 護甲${this.player.getEffectiveArmor()} (${this.calculateDamageReduction()}%減傷) + 固減${this.player.flatReduction}`);
+      // 創建實時數據顯示區域
+      this.createRealTimeStats();
     }
   }
 
-  // 計算護甲減傷百分比
-  calculateDamageReduction() {
-    const armor = this.player.getEffectiveArmor();
-    const reduction = armor / (armor + 100) * 100;
-    return reduction.toFixed(1);
+  createRealTimeStats() {
+    const combatInfo = document.querySelector('.combat-log');
+    const logTitle = combatInfo.querySelector('.log-title');
+    
+    // 創建實時統計容器
+    const statsContainer = document.createElement('div');
+    statsContainer.id = 'realTimeStats';
+    statsContainer.style.cssText = `
+      padding: 10px 0;
+      font-size: 13px;
+      line-height: 1.4;
+    `;
+    
+    logTitle.insertAdjacentElement('afterend', statsContainer);
+    
+    // 初始化顯示
+    this.updateRealTimeStats();
   }
 
-  // 設定戰鬥速度
+  updateRealTimeStats() {
+    const statsContainer = document.getElementById('realTimeStats');
+    if (!statsContainer) return;
+    
+    // 計算玩家 DPS 和防禦能力
+    const playerDPS = this.calculatePlayerDPS();
+    const playerDefense = this.calculatePlayerDefense();
+    
+    // 計算敵人 DPS 和防禦能力
+    const enemyDPS = this.calculateEnemyDPS();
+    const enemyDefense = this.calculateEnemyDefense();
+    
+    // 計算預期戰鬥時間
+    const expectedBattleTime = this.calculateExpectedBattleTime(playerDPS, enemyDPS, playerDefense, enemyDefense);
+    
+    statsContainer.innerHTML = `
+      <div style="margin-bottom: 12px; padding: 8px; background: rgba(78, 205, 196, 0.1); border-radius: 8px; border-left: 3px solid #4ecdc4;">
+        <div style="color: #4ecdc4; font-weight: bold; margin-bottom: 6px;">👤 玩家數據</div>
+        <div>🗡️ DPS: <span style="color: #ffd700; font-weight: bold;">${playerDPS.toFixed(1)}</span></div>
+        <div>🛡️ 護甲減傷: <span style="color: #4ecdc4; font-weight: bold;">${playerDefense.reduction}%</span> | 固減: <span style="color: #4ecdc4; font-weight: bold;">${playerDefense.flatReduction}</span></div>
+        <div>💥 暴擊率: <span style="color: #ff6b6b; font-weight: bold;">${(this.player.critChance * 100).toFixed(1)}%</span> | 🔨 重錘率: <span style="color: #ff6b6b; font-weight: bold;">${this.getHammerRate()}%</span></div>
+      </div>
+      
+      <div style="margin-bottom: 12px; padding: 8px; background: rgba(255, 107, 107, 0.1); border-radius: 8px; border-left: 3px solid #ff6b6b;">
+        <div style="color: #ff6b6b; font-weight: bold; margin-bottom: 6px;">👹 敵人數據</div>
+        <div>🗡️ DPS: <span style="color: #ffd700; font-weight: bold;">${enemyDPS.toFixed(1)}</span></div>
+        <div>🛡️ 防禦力: <span style="color: #ff6b6b; font-weight: bold;">${enemyDefense}</span></div>
+        <div>⚡ 攻速: <span style="color: #ffb347; font-weight: bold;">${this.enemy.attackSpeed.toFixed(2)}</span></div>
+      </div>
+      
+      <div style="padding: 8px; background: rgba(255, 215, 0, 0.1); border-radius: 8px; border-left: 3px solid #ffd700;">
+        <div style="color: #ffd700; font-weight: bold; margin-bottom: 6px;">⏱️ 預期戰鬥</div>
+        <div>預估時長: <span style="color: #ffd700; font-weight: bold;">${expectedBattleTime}秒</span></div>
+        <div>優勢方: <span style="color: ${playerDPS > enemyDPS ? '#4ecdc4' : '#ff6b6b'}; font-weight: bold;">${playerDPS > enemyDPS ? '玩家 (+' + ((playerDPS/enemyDPS - 1) * 100).toFixed(1) + '%)' : '敵人 (+' + ((enemyDPS/playerDPS - 1) * 100).toFixed(1) + '%)'}</span></div>
+      </div>
+    `;
+  }
+
+  calculatePlayerDPS() {
+    const attack = this.player.getEffectiveAttack();
+    const attackSpeed = this.player.getEffectiveAttackSpeed();
+    const critMultiplier = 1 + (this.player.critChance * 1.0); // 暴擊額外100%傷害
+    const hammerMultiplier = 1 + (this.getHammerRate() / 100 * 0.5); // 重錘額外50%傷害
+    
+    return attack * attackSpeed * critMultiplier * hammerMultiplier;
+  }
+
+  calculatePlayerDefense() {
+    const armor = this.player.getEffectiveArmor();
+    const reduction = (armor / (armor + 100) * 100).toFixed(1);
+    return {
+      reduction: reduction,
+      flatReduction: this.player.flatReduction
+    };
+  }
+
+  calculateEnemyDPS() {
+    return this.enemy.attack * this.enemy.attackSpeed;
+  }
+
+  calculateEnemyDefense() {
+    return this.enemy.defense || 0;
+  }
+
+  getHammerRate() {
+    if (!this.player.hammerEffects.mastery) return 0;
+    return this.player.hammerEffects.weight ? 35 : 25;
+  }
+
+  calculateExpectedBattleTime(playerDPS, enemyDPS, playerDefense, enemyDefense) {
+    // 簡化計算：基於雙方DPS和血量
+    const playerEffectiveHP = this.player.hp;
+    const enemyEffectiveHP = this.enemy.hp;
+    
+    const playerTimeToKill = enemyEffectiveHP / Math.max(1, playerDPS - enemyDefense);
+    const enemyTimeToKill = playerEffectiveHP / Math.max(1, enemyDPS * (1 - playerDefense.reduction/100) - playerDefense.flatReduction);
+    
+    return Math.min(playerTimeToKill, enemyTimeToKill).toFixed(1);
+  }
+
+  // 設定戰鬥速度 - 新增10倍速
   setBattleSpeed(speed) {
     this.battleSpeed = speed;
     this.deltaTime = this.baseDeltaTime / this.battleSpeed;
     console.log(`⚡ 戰鬥速度設定為 ${speed}x`);
-    this.addCombatLogEntry(`⚡ 戰鬥速度: ${speed}x`);
   }
 
   start() {
@@ -72,7 +164,7 @@ class BattleSystem {
     this.battleStats.startTime = Date.now();
     this.lastFrameTime = performance.now();
     
-    // 添加速度控制按鈕
+    // 添加速度控制按鈕（包含10倍速）
     this.createSpeedControlUI();
     this.loop();
   }
@@ -98,12 +190,13 @@ class BattleSystem {
     
     speedControl.innerHTML = `
       <div style="margin-bottom: 5px;">⚡ 戰鬥速度</div>
-      <button onclick="window.gameManager?.setBattleSpeed(1)" style="margin-right: 5px; padding: 5px 10px; background: ${this.battleSpeed === 1 ? '#4CAF50' : '#666'}; color: white; border: none; border-radius: 5px; cursor: pointer;">1x</button>
-      <button onclick="window.gameManager?.setBattleSpeed(3)" style="padding: 5px 10px; background: ${this.battleSpeed === 3 ? '#FF9800' : '#666'}; color: white; border: none; border-radius: 5px; cursor: pointer;">3x</button>
+      <button onclick="window.gameManager?.setBattleSpeed(1)" style="margin-right: 5px; padding: 5px 8px; background: ${this.battleSpeed === 1 ? '#4CAF50' : '#666'}; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px;">1x</button>
+      <button onclick="window.gameManager?.setBattleSpeed(3)" style="margin-right: 5px; padding: 5px 8px; background: ${this.battleSpeed === 3 ? '#FF9800' : '#666'}; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px;">3x</button>
+      <button onclick="window.gameManager?.setBattleSpeed(10)" style="padding: 5px 8px; background: ${this.battleSpeed === 10 ? '#E91E63' : '#666'}; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px;">10x</button>
     `;
     
     document.body.appendChild(speedControl);
-    window.gameManager = this.gameManager; // 讓按鈕可以訪問GameManager
+    window.gameManager = this.gameManager;
   }
 
   stop() {
@@ -140,7 +233,7 @@ class BattleSystem {
     // 更新玩家臨時效果
     this.player.updateTempEffects(this.deltaTime);
 
-    // 增加攻擊幀計數 - 修正進度條跳躍問題
+    // 增加攻擊幀計數
     this.player.currentFrame = Math.min(this.player.attackFrame, this.player.currentFrame + 1);
     
     // 敵人只有在非眩暈狀態下才增加攻擊幀
@@ -151,13 +244,13 @@ class BattleSystem {
     // 玩家攻擊檢查
     if (this.player.currentFrame >= this.player.attackFrame) {
       this.processPlayerAttack();
-      this.player.currentFrame = 0; // 平滑重置，不會跳躍
+      this.player.currentFrame = 0;
     }
 
     // 敵人攻擊檢查
     if (this.enemy.currentFrame >= this.enemy.attackFrame && this.isActive && !this.enemy.isStunned) {
       this.processEnemyAttack();
-      this.enemy.currentFrame = 0; // 平滑重置
+      this.enemy.currentFrame = 0;
     }
 
     // 更新敵人眩暈狀態
@@ -167,12 +260,18 @@ class BattleSystem {
         this.enemy.isStunned = false;
         this.enemy.currentFrame = 0;
         console.log('👹 敵人眩暈結束');
-        this.addCombatLogEntry('👹 敵人眩暈結束');
       }
     }
 
     // 更新UI顯示
     this.updateBattleDisplay();
+    
+    // 每60幀更新一次實時統計（降低更新頻率）
+    if (this.frameCount % 60 === 0) {
+      this.updateRealTimeStats();
+    }
+    
+    this.frameCount++;
   }
 
   processPlayerAttack() {
@@ -185,14 +284,9 @@ class BattleSystem {
     if (isCrit) this.battleStats.critCount++;
     if (isHammerProc) this.battleStats.hammerProcCount++;
     
-    // 計算敵人實際受到的傷害（敵人也有防禦力）
+    // 計算敵人實際受到的傷害
     const reducedDmg = Math.max(1, damage - this.enemy.defense);
-    const originalEnemyHp = this.enemy.hp;
     this.enemy.hp = Math.max(0, this.enemy.hp - reducedDmg);
-    
-    const logMessage = `🗡️ 玩家攻擊: ${damage.toFixed(1)} → ${reducedDmg.toFixed(1)} 傷害${isCrit ? ' 💥暴擊' : ''}${isHammerProc ? ' 🔨重錘' : ''}`;
-    console.log(logMessage);
-    this.addCombatLogEntry(logMessage);
     
     // 顯示傷害數字
     this.showDamageNumber(reducedDmg, isCrit || isHammerProc, false);
@@ -204,13 +298,11 @@ class BattleSystem {
       this.enemy.stunDuration = stunDuration;
       this.enemy.currentFrame = 0;
       console.log(`😵 敵人被重錘眩暈 ${stunDuration} 秒！`);
-      this.addCombatLogEntry(`😵 敵人被眩暈 ${stunDuration}秒`);
     }
     
     // 檢查敵人是否死亡
     if (this.enemy.hp <= 0) {
       console.log('🏆 敵人被擊敗！');
-      this.addCombatLogEntry('🏆 敵人被擊敗！');
       this.endBattle(true);
       return;
     }
@@ -227,14 +319,11 @@ class BattleSystem {
     // 更新統計
     this.battleStats.enemyAttackCount++;
     this.battleStats.playerDamageReceived += finalDmg;
-    this.battleStats.playerDamageDealtCount++; // 反甲計數
+    this.battleStats.playerDamageDealtCount++;
     
-    const logMessage = `👹 敵人攻擊: ${rawDmg} → ${armorReduction.toFixed(1)} → ${finalDmg.toFixed(1)} 傷害 (護甲減傷→固定減傷→最終傷害)`;
-    console.log(logMessage);
-    this.addCombatLogEntry(logMessage);
-    
-    // 顯示傷害數字
+    // 顯示傷害數字（新增：顯示受到的傷害量）
     this.showDamageNumber(finalDmg, false, true);
+    this.showFloatingDamage(finalDmg, true); // 新增浮動傷害顯示
     
     // 檢查反甲徽章效果
     this.checkReflectArmor();
@@ -242,25 +331,54 @@ class BattleSystem {
     // 檢查玩家是否死亡
     if (this.player.hp <= 0) {
       console.log('💀 玩家被擊敗！');
-      this.addCombatLogEntry('💀 玩家被擊敗！');
       this.endBattle(false);
       return;
     }
   }
 
-  // 反甲徽章效果檢查
+  // 新增：浮動傷害顯示（在血條旁邊）
+  showFloatingDamage(damage, isPlayerTaking) {
+    const targetCard = document.querySelector(isPlayerTaking ? '.hero .character-card' : '.enemy .character-card');
+    if (!targetCard) return;
+
+    const floatingDamage = document.createElement('div');
+    floatingDamage.className = 'floating-damage';
+    
+    floatingDamage.textContent = `-${damage.toFixed(1)}`;
+    floatingDamage.style.cssText = `
+      position: absolute;
+      right: -20px;
+      top: 40%;
+      font-size: 16px;
+      font-weight: bold;
+      color: ${isPlayerTaking ? '#ff6b6b' : '#4ecdc4'};
+      text-shadow: 0 0 8px ${isPlayerTaking ? '#ff6b6b' : '#4ecdc4'}80;
+      animation: floatRight 1.5s ease-out forwards;
+      pointer-events: none;
+      z-index: 1000;
+    `;
+    
+    targetCard.style.position = 'relative';
+    targetCard.appendChild(floatingDamage);
+
+    // 1.5秒後移除
+    setTimeout(() => {
+      if (floatingDamage.parentNode) {
+        floatingDamage.remove();
+      }
+    }, 1500);
+  }
+
   checkReflectArmor() {
     if (this.player.hasReflectArmor && this.battleStats.playerDamageDealtCount % 5 === 0) {
-      const reflectDamage = Math.floor(this.enemy.maxHp * 0.05); // 5%最大血量
+      const reflectDamage = Math.floor(this.enemy.maxHp * 0.05);
       this.enemy.hp = Math.max(0, this.enemy.hp - reflectDamage);
       
       console.log(`⚡ 反甲觸發！對敵人造成 ${reflectDamage} 反彈傷害`);
-      this.addCombatLogEntry(`⚡ 反甲觸發：${reflectDamage} 傷害 (第${this.battleStats.playerDamageDealtCount}次受傷)`);
       this.showDamageNumber(reflectDamage, true, false, '⚡');
       
       if (this.enemy.hp <= 0) {
         console.log('🏆 敵人被反甲擊敗！');
-        this.addCombatLogEntry('🏆 敵人被反甲擊敗！');
         this.endBattle(true);
         return;
       }
@@ -271,24 +389,18 @@ class BattleSystem {
     this.isActive = false;
     const battleDuration = (Date.now() - this.battleStats.startTime) / 1000;
     
-    // 詳細戰鬥報告
     console.log('\n📊 === 戰鬥報告 ===');
     console.log(`⏱️ 戰鬥時長: ${battleDuration.toFixed(1)}秒`);
     console.log(`🗡️ 玩家攻擊次數: ${this.battleStats.playerAttackCount}`);
     console.log(`💥 暴擊次數: ${this.battleStats.critCount} (${this.battleStats.playerAttackCount > 0 ? (this.battleStats.critCount/this.battleStats.playerAttackCount*100).toFixed(1) : 0}%)`);
     console.log(`🔨 重錘觸發次數: ${this.battleStats.hammerProcCount} (${this.battleStats.playerAttackCount > 0 ? (this.battleStats.hammerProcCount/this.battleStats.playerAttackCount*100).toFixed(1) : 0}%)`);
-    console.log(`📈 總輸出傷害: ${this.battleStats.playerTotalDamage.toFixed(1)}`);
-    console.log(`📊 平均攻擊傷害: ${this.battleStats.playerAttackCount > 0 ? (this.battleStats.playerTotalDamage/this.battleStats.playerAttackCount).toFixed(1) : 0}`);
-    console.log(`🛡️ 受到攻擊次數: ${this.battleStats.enemyAttackCount}`);
-    console.log(`💔 總受傷: ${this.battleStats.playerDamageReceived.toFixed(1)}`);
-    console.log(`📉 平均受傷: ${this.battleStats.enemyAttackCount > 0 ? (this.battleStats.playerDamageReceived/this.battleStats.enemyAttackCount).toFixed(1) : 0}`);
     console.log(`❤️ 剩餘血量: ${this.player.hp.toFixed(1)}/${this.player.maxHp}`);
     console.log('==================\n');
     
-    this.addCombatLogEntry(won ? '🏆 戰鬥勝利！' : '💀 戰鬥失敗！');
-    
-    // 傳遞戰鬥統計給GameManager
-    this.gameManager.endBattle(won, this.battleStats);
+    // 立即傳遞戰鬥統計給GameManager（縮短延遲）
+    setTimeout(() => {
+      this.gameManager.endBattle(won, this.battleStats);
+    }, 100); // 從原來的可能更長時間縮短到100ms
   }
 
   showDamageNumber(damage, isCritical, isEnemyAttack, prefix = '') {
@@ -311,7 +423,7 @@ class BattleSystem {
     damageIndicator.textContent = displayText;
     
     // 隨機位置偏移，避免重疊
-    const randomOffset = Math.random() * 60 - 30; // -30到30的隨機偏移
+    const randomOffset = Math.random() * 60 - 30;
     
     damageIndicator.style.cssText = `
       position: absolute;
@@ -330,7 +442,6 @@ class BattleSystem {
     targetCard.style.position = 'relative';
     targetCard.appendChild(damageIndicator);
 
-    // 2秒後移除元素
     setTimeout(() => {
       if (damageIndicator.parentNode) {
         damageIndicator.remove();
@@ -339,7 +450,7 @@ class BattleSystem {
   }
 
   updateBattleDisplay() {
-    // 更新敵人名稱和狀態（顯示攻擊力）
+    // 更新敵人名稱和狀態
     const enemyName = document.querySelector('.enemy .character-name');
     if (enemyName && this.enemy) {
       let nameText = `${this.enemy.emoji} ${this.enemy.getTypeName()} 攻擊${this.enemy.attack}`;
@@ -367,14 +478,13 @@ class BattleSystem {
       enemyHealthText.textContent = `${Math.round(this.enemy.hp)} / ${this.enemy.maxHp}`;
     }
 
-    // 修復攻擊進度條動畫 - 平滑更新，無跳躍
+    // 更新攻擊進度條
     const heroAttackFill = document.querySelector('.hero .attack-fill');
     if (heroAttackFill) {
       const attackPercent = Math.min(100, (this.player.currentFrame / this.player.attackFrame) * 100);
       heroAttackFill.style.width = `${attackPercent}%`;
-      heroAttackFill.style.transition = 'width 0.1s linear'; // 平滑過渡
+      heroAttackFill.style.transition = 'width 0.1s linear';
       
-      // 攻擊即將完成時的視覺效果
       if (attackPercent > 90) {
         heroAttackFill.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.8)';
       } else {
@@ -382,22 +492,18 @@ class BattleSystem {
       }
     }
 
-    // 修復敵人攻擊進度條動畫
+    // 更新敵人攻擊進度條
     const enemyAttackFill = document.querySelector('.enemy .attack-fill');
     if (enemyAttackFill && this.enemy) {
       if (this.enemy.isStunned) {
-        // 眩暈時進度條變紅色並保持當前進度
         enemyAttackFill.style.background = 'linear-gradient(90deg, #ff6b6b, #ee5a24)';
         enemyAttackFill.style.boxShadow = '0 0 15px rgba(255, 107, 107, 0.8)';
-        // 不重置進度，保持眩暈前的狀態
       } else {
-        // 正常時金色進度條
         enemyAttackFill.style.background = 'linear-gradient(90deg, #ffd700, #ffb347)';
         const attackPercent = Math.min(100, (this.enemy.currentFrame / this.enemy.attackFrame) * 100);
         enemyAttackFill.style.width = `${attackPercent}%`;
-        enemyAttackFill.style.transition = 'width 0.1s linear'; // 平滑過渡
+        enemyAttackFill.style.transition = 'width 0.1s linear';
         
-        // 攻擊即將完成時的視覺效果
         if (attackPercent > 90) {
           enemyAttackFill.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.8)';
         } else {
@@ -419,60 +525,10 @@ class BattleSystem {
       const buttons = speedControl.querySelectorAll('button');
       buttons[0].style.background = this.battleSpeed === 1 ? '#4CAF50' : '#666';
       buttons[1].style.background = this.battleSpeed === 3 ? '#FF9800' : '#666';
+      buttons[2].style.background = this.battleSpeed === 10 ? '#E91E63' : '#666';
     }
   }
 
-  // 添加戰鬥日誌 - 強制滾動修復
-  addCombatLogEntry(message, isEnemyAction = false) {
-    const combatLog = document.querySelector('.combat-log');
-    const logTitle = document.querySelector('.log-title');
-    
-    if (!combatLog || !logTitle) {
-      console.warn('Combat log elements not found');
-      return;
-    }
-
-    const logEntry = document.createElement('div');
-    logEntry.className = `log-entry ${isEnemyAction ? 'enemy' : ''}`;
-    logEntry.textContent = message;
-    logEntry.style.cssText = `
-      font-size: 13px;
-      margin-bottom: 5px;
-      padding: 5px 8px;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.05);
-      border-left: 3px solid ${isEnemyAction ? '#ff6b6b' : '#4ecdc4'};
-      animation: logFadeIn 0.3s ease-in;
-      word-wrap: break-word;
-      line-height: 1.3;
-    `;
-
-    // 將日誌插入到標題下方
-    logTitle.insertAdjacentElement('afterend', logEntry);
-
-    // 多重滾動到底部嘗試
-    const scrollToBottom = () => {
-      combatLog.scrollTop = combatLog.scrollHeight;
-    };
-    
-    // 立即滾動
-    scrollToBottom();
-    
-    // 延遲滾動（確保DOM更新）
-    setTimeout(scrollToBottom, 10);
-    setTimeout(scrollToBottom, 50);
-    setTimeout(scrollToBottom, 100);
-
-    // 如果日誌太多，移除舊的
-    const allEntries = combatLog.querySelectorAll('.log-entry');
-    if (allEntries.length > 20) {
-      allEntries[0].remove();
-      // 移除後再次滾動
-      setTimeout(scrollToBottom, 10);
-    }
-  }
-
-  // 獲取當前戰鬥統計（用於實時顯示）
   getCurrentStats() {
     return {
       ...this.battleStats,
@@ -489,11 +545,25 @@ class BattleSystem {
   }
 }
 
-// 添加必要的CSS動畫
-if (!document.querySelector('#battleAnimations')) {
+// 添加新的CSS動畫
+if (!document.querySelector('#enhancedBattleAnimations')) {
   const style = document.createElement('style');
-  style.id = 'battleAnimations';
+  style.id = 'enhancedBattleAnimations';
   style.textContent = `
+    @keyframes floatRight {
+      0% {
+        opacity: 1;
+        transform: translateX(0) translateY(0) scale(1);
+      }
+      50% {
+        transform: translateX(30px) translateY(-10px) scale(1.1);
+      }
+      100% {
+        opacity: 0;
+        transform: translateX(60px) translateY(-20px) scale(0.9);
+      }
+    }
+    
     @keyframes damageFloat {
       0% {
         opacity: 1;
@@ -508,9 +578,9 @@ if (!document.querySelector('#battleAnimations')) {
       }
     }
     
-    @keyframes logFadeIn {
-      0% { opacity: 0; transform: translateX(-20px); }
-      100% { opacity: 1; transform: translateX(0); }
+    .floating-damage {
+      user-select: none;
+      pointer-events: none;
     }
     
     .damage-indicator {
@@ -520,31 +590,6 @@ if (!document.querySelector('#battleAnimations')) {
     
     .attack-fill {
       transition: width 0.1s linear !important;
-    }
-
-    /* 確保 Combat Log 可以滾動 */
-    .combat-log {
-      overflow-y: auto !important;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
-    }
-
-    .combat-log::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .combat-log::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 3px;
-    }
-
-    .combat-log::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.3);
-      border-radius: 3px;
-    }
-
-    .combat-log::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.5);
     }
   `;
   document.head.appendChild(style);
