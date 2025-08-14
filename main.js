@@ -47,30 +47,61 @@ function showErrorMessage(title, message) {
   }, 5000);
 }
 
-// 簡化版本的基礎檢查（不依賴外部模組）
+// 文件位置：main.js（替換 checkBasicEnvironment 函數）
+
+// 改進的基礎環境檢查（提供詳細診斷）
 function checkBasicEnvironment() {
   try {
     console.log('🎮 檢查基礎環境...');
     
-    // 檢查必要的 DOM 元素
+    // 檢查必要的 DOM 元素（更詳細的檢查）
     const requiredElements = [
-      '.round-counter',
-      '.hero .character-card',
-      '.enemy .character-card',
-      '.stats-panel',
-      '.combat-log'
+      { selector: '.round-counter', name: '關卡計數器' },
+      { selector: '.hero .character-card', name: '英雄卡片' },
+      { selector: '.enemy .character-card', name: '敵人卡片' },
+      { selector: '.stats-panel', name: '統計面板' },
+      { selector: '.combat-log', name: '戰鬥日誌' }
     ];
     
-    const missingElements = requiredElements.filter(selector => !document.querySelector(selector));
+    const missingElements = [];
+    const foundElements = [];
+    
+    requiredElements.forEach(element => {
+      const domElement = document.querySelector(element.selector);
+      if (!domElement) {
+        missingElements.push(element);
+        console.error(`❌ 缺少元素: ${element.name} (${element.selector})`);
+      } else {
+        foundElements.push(element);
+        console.log(`✅ 找到元素: ${element.name}`);
+      }
+    });
+    
+    // 詳細診斷信息
+    console.log(`📊 DOM 檢查結果: ${foundElements.length}/${requiredElements.length} 元素存在`);
     
     if (missingElements.length > 0) {
-      console.error('❌ 缺少必要的 DOM 元素:', missingElements);
+      console.error('❌ 缺少必要的 DOM 元素:', missingElements.map(e => e.name));
+      
+      // 顯示詳細的 DOM 診斷
+      showDOMDiagnostic(missingElements, foundElements);
       return false;
     }
     
-    // 檢查全局變數
+    // 檢查基本的全局變數
     if (typeof window === 'undefined') {
       console.error('❌ window 對象不存在');
+      return false;
+    }
+    
+    if (typeof document === 'undefined') {
+      console.error('❌ document 對象不存在');
+      return false;
+    }
+    
+    // 檢查是否在正確的環境中運行
+    if (!document.body) {
+      console.error('❌ document.body 不存在');
       return false;
     }
     
@@ -79,8 +110,141 @@ function checkBasicEnvironment() {
     
   } catch (error) {
     console.error('❌ 基礎環境檢查失敗:', error);
+    showEnvironmentError(error);
     return false;
   }
+}
+
+// 顯示 DOM 診斷信息
+function showDOMDiagnostic(missingElements, foundElements) {
+  const diagnosticDiv = document.createElement('div');
+  diagnosticDiv.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 0, 0, 0.95);
+    color: white;
+    padding: 30px;
+    border-radius: 15px;
+    text-align: left;
+    z-index: 10000;
+    font-family: 'Consolas', 'Monaco', monospace;
+    max-width: 80%;
+    max-height: 80%;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  `;
+  
+  const missingList = missingElements.map(e => 
+    `<div style="color: #ffcccb; margin: 5px 0;">❌ ${e.name} (${e.selector})</div>`
+  ).join('');
+  
+  const foundList = foundElements.map(e => 
+    `<div style="color: #90EE90; margin: 5px 0;">✅ ${e.name}</div>`
+  ).join('');
+  
+  diagnosticDiv.innerHTML = `
+    <h2 style="color: #ff6b6b; margin-bottom: 20px;">🚨 DOM 元素檢查失敗</h2>
+    
+    <div style="margin-bottom: 20px;">
+      <h3 style="color: #ffcccb; margin-bottom: 10px;">❌ 缺少的元素:</h3>
+      ${missingList}
+    </div>
+    
+    ${foundList ? `
+      <div style="margin-bottom: 20px;">
+        <h3 style="color: #90EE90; margin-bottom: 10px;">✅ 存在的元素:</h3>
+        ${foundList}
+      </div>
+    ` : ''}
+    
+    <div style="margin-bottom: 20px; padding: 15px; background: rgba(0, 0, 0, 0.3); border-radius: 10px;">
+      <h3 style="color: #ffd700; margin-bottom: 10px;">🔧 修復建議:</h3>
+      <div style="font-size: 14px; line-height: 1.6;">
+        1. 檢查 index.html 是否包含所有必要的元素<br>
+        2. 確認 CSS 類名拼寫正確<br>
+        3. 檢查 HTML 結構是否完整<br>
+        4. 確認沒有 JavaScript 錯誤阻止 DOM 加載<br>
+        5. 嘗試清除瀏覽器快取並重新載入
+      </div>
+    </div>
+    
+    <div style="margin-bottom: 20px; padding: 15px; background: rgba(0, 0, 0, 0.3); border-radius: 10px;">
+      <h3 style="color: #ffd700; margin-bottom: 10px;">📋 預期的 HTML 結構:</h3>
+      <pre style="font-size: 12px; color: #ccc; overflow-x: auto;">
+&lt;div class="round-counter"&gt;Round 1 / 20&lt;/div&gt;
+&lt;div class="character-card hero"&gt;...&lt;/div&gt;
+&lt;div class="character-card enemy"&gt;...&lt;/div&gt;
+&lt;div class="stats-panel"&gt;...&lt;/div&gt;
+&lt;div class="combat-log"&gt;...&lt;/div&gt;
+      </pre>
+    </div>
+    
+    <div style="text-align: center;">
+      <button onclick="this.parentElement.remove()" style="
+        padding: 10px 20px;
+        background: white;
+        color: red;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        margin-right: 10px;
+      ">關閉診斷</button>
+      <button onclick="location.reload()" style="
+        padding: 10px 20px;
+        background: #ff6b6b;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+      ">重新載入</button>
+    </div>
+  `;
+  
+  document.body.appendChild(diagnosticDiv);
+}
+
+// 顯示環境錯誤
+function showEnvironmentError(error) {
+  const errorDiv = document.createElement('div');
+  errorDiv.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 0, 0, 0.95);
+    color: white;
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    z-index: 10000;
+    font-family: Arial, sans-serif;
+    max-width: 500px;
+    width: 90%;
+  `;
+  
+  errorDiv.innerHTML = `
+    <h2 style="margin-bottom: 15px;">🚨 環境檢查錯誤</h2>
+    <p style="margin-bottom: 15px;">錯誤信息: ${error.message}</p>
+    <p style="margin-bottom: 20px; font-size: 14px; opacity: 0.9;">
+      這可能是因為瀏覽器環境不支持或頁面載入不完整。
+    </p>
+    <button onclick="location.reload()" style="
+      padding: 10px 20px;
+      background: white;
+      color: red;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 16px;
+    ">🔄 重新載入</button>
+  `;
+  
+  document.body.appendChild(errorDiv);
 }
 
 // 簡化版本的網路檢查
@@ -282,3 +446,112 @@ document.addEventListener('visibilitychange', () => {
 });
 
 console.log('✅ main.js 初始化完成，等待 DOM 載入...');
+
+// 文件位置：main.js（更新頁面載入邏輯）
+
+// 確保 DOM 完全載入的函數
+function waitForDOMReady() {
+  return new Promise((resolve) => {
+    if (document.readyState === 'complete') {
+      // 如果頁面已經載入完成
+      resolve();
+    } else if (document.readyState === 'interactive') {
+      // 如果 DOM 已載入但資源可能還在載入
+      setTimeout(resolve, 100); // 稍等一下確保所有元素都已渲染
+    } else {
+      // 如果頁面還在載入
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(resolve, 100); // DOM 載入後再等待一點時間
+      });
+    }
+  });
+}
+
+// 更強健的初始化檢查
+async function waitForElementsReady() {
+  const maxAttempts = 10; // 最多嘗試 10 次
+  const delay = 200; // 每次嘗試間隔 200ms
+  
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    console.log(`🔍 DOM 元素檢查 (第 ${attempt}/${maxAttempts} 次)...`);
+    
+    // 檢查所有必要元素是否存在
+    const elements = [
+      document.querySelector('.round-counter'),
+      document.querySelector('.hero .character-card'), 
+      document.querySelector('.enemy .character-card'),
+      document.querySelector('.stats-panel'),
+      document.querySelector('.combat-log')
+    ];
+    
+    const allElementsFound = elements.every(el => el !== null);
+    
+    if (allElementsFound) {
+      console.log(`✅ 所有 DOM 元素在第 ${attempt} 次嘗試中找到`);
+      return true;
+    }
+    
+    console.log(`⏳ 第 ${attempt} 次嘗試中缺少元素，等待 ${delay}ms 後重試...`);
+    
+    // 等待一段時間後重試
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+  
+  console.error(`❌ 經過 ${maxAttempts} 次嘗試，仍有 DOM 元素缺失`);
+  return false;
+}
+
+// 更新的 DOM 載入完成處理
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log('📄 DOMContentLoaded 事件觸發');
+  
+  try {
+    // 1. 等待 DOM 完全準備好
+    await waitForDOMReady();
+    console.log('✅ DOM 基礎載入完成');
+    
+    // 2. 等待所有必要元素準備好
+    const elementsReady = await waitForElementsReady();
+    
+    if (!elementsReady) {
+      throw new Error('DOM 元素載入超時，某些必要元素缺失');
+    }
+    
+    // 3. 再額外等待一段時間確保渲染完成
+    console.log('⏳ 等待頁面完全渲染...');
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // 4. 開始遊戲初始化
+    console.log('🚀 開始遊戲初始化...');
+    await initializeGame();
+    
+  } catch (error) {
+    console.error('❌ DOM 載入或遊戲初始化失敗:', error);
+    showErrorMessage('載入失敗', error.message);
+  }
+});
+
+// 備用方案：如果 DOMContentLoaded 沒有觸發
+window.addEventListener('load', async () => {
+  console.log('📄 window.load 事件觸發（備用方案）');
+  
+  // 檢查遊戲是否已經初始化
+  if (!window.game) {
+    console.log('🔄 使用備用方案初始化遊戲...');
+    
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500)); // 額外等待
+      await initializeGame();
+    } catch (error) {
+      console.error('❌ 備用初始化也失敗:', error);
+      showErrorMessage('備用載入失敗', error.message);
+    }
+  }
+});
+
+// 頁面可見性檢查
+if (document.hidden) {
+  console.warn('⚠️ 頁面當前不可見，這可能影響初始化');
+}
+
+console.log('✅ main.js DOM 處理邏輯已載入');
