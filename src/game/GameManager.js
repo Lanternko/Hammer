@@ -1,4 +1,4 @@
-// src/game/GameManager.js - 護甲懸浮說明修復
+// src/game/GameManager.js - 修復版本
 import Player from './Player.js';
 import Enemy from './Enemy.js';
 import BattleSystem from '../systems/BattleSystem.js';
@@ -81,9 +81,9 @@ class GameManager {
   endBattle(won, battleStats = null) {
     console.log(`⚔️ 戰鬥結束 - ${won ? '✅ 勝利' : '❌ 失敗'}`);
     
-    // 顯示戰鬥統計（延長顯示時間到8秒）
+    // 縮短戰鬥結果顯示時間到3秒
     if (battleStats && this.enhancedUI) {
-      this.enhancedUI.showBattleResults(battleStats, this.player, 8000);
+      this.enhancedUI.showBattleResults(battleStats, this.player, 3000);
     }
     
     if (!won) {
@@ -106,10 +106,10 @@ class GameManager {
     this.player.hp = this.player.maxHp;
     console.log('💚 血量已回滿');
 
-    // 延遲顯示升級選擇
+    // 縮短延遲到1秒
     setTimeout(() => {
       this.showLevelUpChoice(goldReward);
-    }, 3000);
+    }, 1000);
   }
 
   showLevelUpChoice(goldReward) {
@@ -208,7 +208,7 @@ class GameManager {
         setTimeout(() => {
           this.currentLevel++;
           this.nextLevel();
-        }, 1000);
+        }, 500); // 縮短延遲
       });
 
       option.addEventListener('mouseenter', () => {
@@ -230,10 +230,21 @@ class GameManager {
     
     if (upgrade.isPercentage) {
       newValue = Math.floor(currentValue * (1 + upgrade.value));
-      return `${currentValue} → ${newValue} (+${(upgrade.value * 100).toFixed(1)}%)`;
+      return `${Math.floor(currentValue)} → ${newValue} (+${(upgrade.value * 100).toFixed(0)}%)`;
     } else {
-      newValue = currentValue + upgrade.value;
-      return `${currentValue} → ${newValue} (+${upgrade.value})`;
+      if (upgrade.type === 'critChance') {
+        // 暴擊率特殊處理：顯示百分比
+        const currentPercent = (currentValue * 100).toFixed(0);
+        const newPercent = ((currentValue + upgrade.value) * 100).toFixed(0);
+        return `${currentPercent}% → ${newPercent}% (+${(upgrade.value * 100).toFixed(0)}%)`;
+      } else if (upgrade.type === 'attackSpeed') {
+        // 攻速保留小數點
+        newValue = (currentValue + upgrade.value).toFixed(2);
+        return `${currentValue.toFixed(2)} → ${newValue} (+${upgrade.value.toFixed(2)})`;
+      } else {
+        newValue = Math.floor(currentValue + upgrade.value);
+        return `${Math.floor(currentValue)} → ${newValue} (+${upgrade.value})`;
+      }
     }
   }
 
@@ -243,8 +254,9 @@ class GameManager {
       case 'maxHp': return this.player.maxHp;
       case 'armor': return this.player.getEffectiveArmor();
       case 'attackSpeed': return this.player.getEffectiveAttackSpeed();
-      case 'critChance': return (this.player.critChance * 100).toFixed(1);
+      case 'critChance': return this.player.critChance;
       case 'flatReduction': return this.player.flatReduction;
+      case 'lifesteal': return this.player.lifesteal || 0;
       default: return 0;
     }
   }
@@ -489,7 +501,7 @@ class GameManager {
     // 保持戰鬥速度設定不重置
     
     // 清理UI
-    const existingOverlays = document.querySelectorAll('[id*="Overlay"], .damage-indicator, #speedControl');
+    const existingOverlays = document.querySelectorAll('[id*="Overlay"], .damage-indicator, #speedControl, #realTimeStats');
     existingOverlays.forEach(overlay => overlay.remove());
     
     // 重新給開局徽章
@@ -544,7 +556,7 @@ class GameManager {
       heroName.textContent = `🔨 重錘英雄 (${Math.round(this.player.hp)}/${this.player.maxHp})`;
     }
 
-    // 更新統計面板 - 修復顯示問題
+    // 更新統計面板
     const stats = document.querySelectorAll('.stat-value');
     if (stats.length >= 4) {
       stats[0].textContent = this.player.getEffectiveAttack().toFixed(1);
@@ -567,20 +579,15 @@ class GameManager {
       this.enhancedUI.updateBuffDisplay(this.player);
     }
   }
-
-  // 計算護甲減傷百分比
-  calculateDamageReduction() {
-    const armor = this.player.getEffectiveArmor();
-    const reduction = armor / (armor + 100) * 100;
-    return reduction.toFixed(1);
-  }
 }
 
-// 增強的UI管理器類 - 修復護甲說明位置
+// 修復增強的UI管理器類 - 護甲提示更清楚
 class EnhancedUIManager {
   constructor() {
     this.createBuffDisplayArea();
-    this.createHoverTooltips(); // 新增懸浮提示
+    setTimeout(() => {
+      this.createHoverTooltips(); // 延遲創建，確保DOM載入
+    }, 2000);
   }
 
   createBuffDisplayArea() {
@@ -614,70 +621,81 @@ class EnhancedUIManager {
     document.body.appendChild(buffPanel);
   }
 
-  // 新增：創建懸浮提示系統
+  // 修復：創建更清楚的護甲懸浮提示
   createHoverTooltips() {
-    // 為統計面板添加問號圖標和懸浮說明
-    setTimeout(() => {
-      const statsPanel = document.querySelector('.stats-panel');
-      if (statsPanel) {
-        // 找到防禦行
-        const statRows = statsPanel.querySelectorAll('.stat-row');
-        statRows.forEach(row => {
-          const label = row.querySelector('.stat-label');
-          if (label && label.textContent.includes('Defense')) {
-            // 添加問號圖標
-            const helpIcon = document.createElement('span');
-            helpIcon.innerHTML = ' ❓';
-            helpIcon.style.cssText = `
-              cursor: help;
-              margin-left: 5px;
-              font-size: 12px;
-              opacity: 0.7;
-              position: relative;
-            `;
-            
-            // 創建懸浮提示
-            const tooltip = document.createElement('div');
-            tooltip.style.cssText = `
-              position: absolute;
-              bottom: 25px;
-              left: 50%;
-              transform: translateX(-50%);
-              background: rgba(0, 0, 0, 0.9);
-              color: white;
-              padding: 10px;
-              border-radius: 8px;
-              font-size: 12px;
-              line-height: 1.4;
-              width: 200px;
-              z-index: 1000;
-              border: 1px solid rgba(255, 255, 255, 0.2);
-              display: none;
-            `;
-            
-            tooltip.innerHTML = `
-              <strong>🛡️ 減傷機制</strong><br>
-              護甲減傷% = 護甲 ÷ (護甲 + 100)<br>
-              <span style="color: #ffd700;">例: 50護甲 = 33.3%減傷</span><br><br>
-              <strong>計算順序:</strong><br>
+    const statsPanel = document.querySelector('.stats-panel');
+    if (statsPanel) {
+      const statRows = statsPanel.querySelectorAll('.stat-row');
+      statRows.forEach(row => {
+        const label = row.querySelector('.stat-label');
+        if (label && label.textContent.includes('Defense')) {
+          // 添加問號圖標
+          const helpIcon = document.createElement('span');
+          helpIcon.innerHTML = ' ❓';
+          helpIcon.style.cssText = `
+            cursor: help;
+            margin-left: 5px;
+            font-size: 14px;
+            opacity: 0.9;
+            position: relative;
+            color: #4ecdc4;
+          `;
+          
+          // 創建更清楚的懸浮提示
+          const tooltip = document.createElement('div');
+          tooltip.style.cssText = `
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 13px;
+            line-height: 1.5;
+            width: 250px;
+            z-index: 1000;
+            border: 2px solid #4ecdc4;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.8);
+            display: none;
+            backdrop-filter: blur(10px);
+          `;
+          
+          tooltip.innerHTML = `
+            <div style="text-align: center; margin-bottom: 10px;">
+              <strong style="color: #4ecdc4; font-size: 14px;">🛡️ 護甲減傷機制</strong>
+            </div>
+            <div style="margin-bottom: 8px;">
+              <strong style="color: #ffd700;">計算公式：</strong><br>
+              減傷% = 護甲 ÷ (護甲 + 100)
+            </div>
+            <div style="margin-bottom: 8px;">
+              <strong style="color: #ffd700;">舉例說明：</strong><br>
+              • 50護甲 = 33.3%減傷<br>
+              • 100護甲 = 50%減傷<br>
+              • 200護甲 = 66.7%減傷
+            </div>
+            <div style="background: rgba(78, 205, 196, 0.2); padding: 8px; border-radius: 6px; margin-top: 10px;">
+              <strong style="color: #4ecdc4;">傷害計算順序：</strong><br>
               原始傷害 → 護甲減傷 → 固定減傷 → 最終傷害
-            `;
-            
-            helpIcon.appendChild(tooltip);
-            label.appendChild(helpIcon);
-            
-            // 添加懸浮事件
-            helpIcon.addEventListener('mouseenter', () => {
-              tooltip.style.display = 'block';
-            });
-            
-            helpIcon.addEventListener('mouseleave', () => {
-              tooltip.style.display = 'none';
-            });
-          }
-        });
-      }
-    }, 1000); // 延遲1秒確保DOM加載完成
+            </div>
+          `;
+          
+          helpIcon.appendChild(tooltip);
+          label.appendChild(helpIcon);
+          
+          // 添加懸浮事件
+          helpIcon.addEventListener('mouseenter', () => {
+            tooltip.style.display = 'block';
+          });
+          
+          helpIcon.addEventListener('mouseleave', () => {
+            tooltip.style.display = 'none';
+          });
+        }
+      });
+    }
   }
 
   updateBuffDisplay(player) {
@@ -714,8 +732,8 @@ class EnhancedUIManager {
       : '<div style="opacity: 0.6; font-size: 13px;">暫無效果</div>';
   }
 
-  // 顯示戰鬥結束的詳細統計（延長顯示時間）
-  showBattleResults(battleStats, player, displayTime = 8000) {
+  // 縮短戰鬥結果顯示時間
+  showBattleResults(battleStats, player, displayTime = 3000) {
     const resultsDiv = document.createElement('div');
     resultsDiv.style.cssText = `
       position: fixed;
@@ -785,7 +803,7 @@ class EnhancedUIManager {
       }
     }, 1000);
 
-    // 延長時間後自動關閉
+    // 縮短自動關閉時間
     setTimeout(() => {
       if (resultsDiv.parentNode) {
         resultsDiv.remove();
