@@ -1,4 +1,4 @@
-// src/systems/BattleSystem.js - 完整修復版
+// src/systems/BattleSystem.js - 最終修復版
 class BattleSystem {
   constructor(player, enemy, gameManager) {
     this.player = player;
@@ -10,7 +10,7 @@ class BattleSystem {
     this.lastFrameTime = 0;
     
     // 戰鬥速度控制（可選3倍速）
-    this.battleSpeed = 1; // 1=正常, 3=三倍速
+    this.battleSpeed = 1; // 預設1倍速
     this.baseDeltaTime = 0.1; // 基礎10fps
     this.deltaTime = this.baseDeltaTime / this.battleSpeed;
     
@@ -37,10 +37,22 @@ class BattleSystem {
       const existingEntries = combatLog.querySelectorAll('.log-entry');
       existingEntries.forEach(entry => entry.remove());
       
+      // 確保日誌容器可以滾動
+      combatLog.style.overflowY = 'auto';
+      combatLog.style.height = '200px';
+      
       this.addCombatLogEntry('⚔️ 戰鬥開始！');
-      this.addCombatLogEntry(`👤 玩家: ${this.player.hp}/${this.player.maxHp} HP`);
-      this.addCombatLogEntry(`👹 敵人: ${this.enemy.hp}/${this.enemy.maxHp} HP, ${this.enemy.attack} 攻擊`);
+      this.addCombatLogEntry(`👤 玩家: ${this.player.hp}/${this.player.maxHp} HP, ${this.player.attack} 攻擊`);
+      this.addCombatLogEntry(`👹 敵人: ${this.enemy.hp}/${this.enemy.maxHp} HP, ${this.enemy.attack} 攻擊, ${this.enemy.defense} 防禦`);
+      this.addCombatLogEntry(`🛡️ 減傷機制: 護甲${this.player.getEffectiveArmor()} (${this.calculateDamageReduction()}%減傷) + 固減${this.player.flatReduction}`);
     }
+  }
+
+  // 計算護甲減傷百分比
+  calculateDamageReduction() {
+    const armor = this.player.getEffectiveArmor();
+    const reduction = armor / (armor + 100) * 100;
+    return reduction.toFixed(1);
   }
 
   // 設定戰鬥速度
@@ -74,7 +86,7 @@ class BattleSystem {
     speedControl.style.cssText = `
       position: fixed;
       top: 20px;
-      right: 300px;
+      right: 330px;
       background: rgba(0, 0, 0, 0.8);
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 10px;
@@ -86,12 +98,12 @@ class BattleSystem {
     
     speedControl.innerHTML = `
       <div style="margin-bottom: 5px;">⚡ 戰鬥速度</div>
-      <button onclick="window.battleSystem?.setBattleSpeed(1)" style="margin-right: 5px; padding: 5px 10px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">1x</button>
-      <button onclick="window.battleSystem?.setBattleSpeed(3)" style="padding: 5px 10px; background: #FF9800; color: white; border: none; border-radius: 5px; cursor: pointer;">3x</button>
+      <button onclick="window.gameManager?.setBattleSpeed(1)" style="margin-right: 5px; padding: 5px 10px; background: ${this.battleSpeed === 1 ? '#4CAF50' : '#666'}; color: white; border: none; border-radius: 5px; cursor: pointer;">1x</button>
+      <button onclick="window.gameManager?.setBattleSpeed(3)" style="padding: 5px 10px; background: ${this.battleSpeed === 3 ? '#FF9800' : '#666'}; color: white; border: none; border-radius: 5px; cursor: pointer;">3x</button>
     `;
     
     document.body.appendChild(speedControl);
-    window.battleSystem = this; // 讓按鈕可以訪問
+    window.gameManager = this.gameManager; // 讓按鈕可以訪問GameManager
   }
 
   stop() {
@@ -104,7 +116,7 @@ class BattleSystem {
     // 清理速度控制UI
     const speedControl = document.getElementById('speedControl');
     if (speedControl) speedControl.remove();
-    window.battleSystem = null;
+    window.gameManager = null;
   }
 
   loop() {
@@ -173,13 +185,14 @@ class BattleSystem {
     if (isCrit) this.battleStats.critCount++;
     if (isHammerProc) this.battleStats.hammerProcCount++;
     
-    const logMessage = `🗡️ 玩家攻擊: ${damage.toFixed(1)} 傷害${isCrit ? ' 💥暴擊' : ''}${isHammerProc ? ' 🔨重錘' : ''}`;
-    console.log(logMessage);
-    this.addCombatLogEntry(logMessage);
-    
     // 計算敵人實際受到的傷害（敵人也有防禦力）
     const reducedDmg = Math.max(1, damage - this.enemy.defense);
+    const originalEnemyHp = this.enemy.hp;
     this.enemy.hp = Math.max(0, this.enemy.hp - reducedDmg);
+    
+    const logMessage = `🗡️ 玩家攻擊: ${damage.toFixed(1)} → ${reducedDmg.toFixed(1)} 傷害${isCrit ? ' 💥暴擊' : ''}${isHammerProc ? ' 🔨重錘' : ''}`;
+    console.log(logMessage);
+    this.addCombatLogEntry(logMessage);
     
     // 顯示傷害數字
     this.showDamageNumber(reducedDmg, isCrit || isHammerProc, false);
@@ -216,7 +229,7 @@ class BattleSystem {
     this.battleStats.playerDamageReceived += finalDmg;
     this.battleStats.playerDamageDealtCount++; // 反甲計數
     
-    const logMessage = `👹 敵人攻擊: ${finalDmg.toFixed(1)} 傷害`;
+    const logMessage = `👹 敵人攻擊: ${rawDmg} → ${armorReduction.toFixed(1)} → ${finalDmg.toFixed(1)} 傷害 (護甲減傷→固定減傷→最終傷害)`;
     console.log(logMessage);
     this.addCombatLogEntry(logMessage);
     
@@ -242,7 +255,7 @@ class BattleSystem {
       this.enemy.hp = Math.max(0, this.enemy.hp - reflectDamage);
       
       console.log(`⚡ 反甲觸發！對敵人造成 ${reflectDamage} 反彈傷害`);
-      this.addCombatLogEntry(`⚡ 反甲觸發：${reflectDamage} 傷害`);
+      this.addCombatLogEntry(`⚡ 反甲觸發：${reflectDamage} 傷害 (第${this.battleStats.playerDamageDealtCount}次受傷)`);
       this.showDamageNumber(reflectDamage, true, false, '⚡');
       
       if (this.enemy.hp <= 0) {
@@ -296,6 +309,10 @@ class BattleSystem {
     }
     
     damageIndicator.textContent = displayText;
+    
+    // 隨機位置偏移，避免重疊
+    const randomOffset = Math.random() * 60 - 30; // -30到30的隨機偏移
+    
     damageIndicator.style.cssText = `
       position: absolute;
       font-size: ${fontSize};
@@ -305,7 +322,7 @@ class BattleSystem {
       animation: damageFloat 2s ease-out forwards;
       pointer-events: none;
       z-index: 1000;
-      left: 50%;
+      left: calc(50% + ${randomOffset}px);
       top: 20%;
       transform: translateX(-50%);
     `;
@@ -389,11 +406,23 @@ class BattleSystem {
       }
     }
 
+    // 更新速度控制按鈕顏色
+    this.updateSpeedControlButtons();
+
     // 更新GameManager的統計顯示
     this.gameManager.updatePlayerStats();
   }
 
-  // 添加戰鬥日誌
+  updateSpeedControlButtons() {
+    const speedControl = document.getElementById('speedControl');
+    if (speedControl) {
+      const buttons = speedControl.querySelectorAll('button');
+      buttons[0].style.background = this.battleSpeed === 1 ? '#4CAF50' : '#666';
+      buttons[1].style.background = this.battleSpeed === 3 ? '#FF9800' : '#666';
+    }
+  }
+
+  // 添加戰鬥日誌 - 強制滾動修復
   addCombatLogEntry(message, isEnemyAction = false) {
     const combatLog = document.querySelector('.combat-log');
     const logTitle = document.querySelector('.log-title');
@@ -414,18 +443,32 @@ class BattleSystem {
       background: rgba(255, 255, 255, 0.05);
       border-left: 3px solid ${isEnemyAction ? '#ff6b6b' : '#4ecdc4'};
       animation: logFadeIn 0.3s ease-in;
+      word-wrap: break-word;
+      line-height: 1.3;
     `;
 
     // 將日誌插入到標題下方
     logTitle.insertAdjacentElement('afterend', logEntry);
 
-    // 保持日誌滾動到底部
-    combatLog.scrollTop = combatLog.scrollHeight;
+    // 多重滾動到底部嘗試
+    const scrollToBottom = () => {
+      combatLog.scrollTop = combatLog.scrollHeight;
+    };
+    
+    // 立即滾動
+    scrollToBottom();
+    
+    // 延遲滾動（確保DOM更新）
+    setTimeout(scrollToBottom, 10);
+    setTimeout(scrollToBottom, 50);
+    setTimeout(scrollToBottom, 100);
 
     // 如果日誌太多，移除舊的
     const allEntries = combatLog.querySelectorAll('.log-entry');
-    if (allEntries.length > 15) {
+    if (allEntries.length > 20) {
       allEntries[0].remove();
+      // 移除後再次滾動
+      setTimeout(scrollToBottom, 10);
     }
   }
 
@@ -477,6 +520,31 @@ if (!document.querySelector('#battleAnimations')) {
     
     .attack-fill {
       transition: width 0.1s linear !important;
+    }
+
+    /* 確保 Combat Log 可以滾動 */
+    .combat-log {
+      overflow-y: auto !important;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+    }
+
+    .combat-log::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .combat-log::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+
+    .combat-log::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+    }
+
+    .combat-log::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.5);
     }
   `;
   document.head.appendChild(style);

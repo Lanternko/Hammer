@@ -1,17 +1,33 @@
-// src/game/Player.js - 增加反甲支援
-import { applyBadgeEffectToPlayer } from '../data/badges.js';
+// src/game/Player.js - 修復屬性計算
+import { applyBadgeEffectToPlayer } from '../data/Badges.js';
 
 class Player {
   constructor() {
-    this.hp = 100;
-    this.maxHp = 100;
-    this.attack = 20;
-    this.attackSpeed = 0.5;
-    this.armor = 20;
-    this.flatReduction = 5;
-    this.critChance = 0.1;
+    // 基礎屬性（只會被固定值修改）
+    this.baseHp = 100;
+    this.baseAttack = 20;
+    this.baseAttackSpeed = 0.5;
+    this.baseArmor = 20;
+    this.baseFlatReduction = 5;
+    this.baseCritChance = 0.1;
+    
+    // 固定值增強（來自徽章）
+    this.bonusHp = 0;
+    this.bonusAttack = 0;
+    this.bonusAttackSpeed = 0;
+    this.bonusArmor = 0;
+    this.bonusFlatReduction = 0;
+    this.bonusCritChance = 0;
+    
+    // 百分比增強（來自升級）
+    this.hpMultiplier = 1.0;
+    this.attackMultiplier = 1.0;
+    this.attackSpeedMultiplier = 1.0;
+    this.armorMultiplier = 1.0;
+    
+    // 當前狀態
+    this.hp = this.getMaxHp();
     this.badges = [];
-    this.attackFrame = Math.round(20 / this.attackSpeed);
     this.currentFrame = 0;
     
     // 重錘BD相關狀態
@@ -45,6 +61,53 @@ class Player {
     this.level = 1;
     this.exp = 0;
     this.expToNext = 100;
+    
+    this.updateAttackFrame();
+  }
+
+  // 獲取有效屬性值
+  getMaxHp() {
+    return Math.floor((this.baseHp + this.bonusHp) * this.hpMultiplier);
+  }
+
+  getEffectiveAttack() {
+    return Math.floor((this.baseAttack + this.bonusAttack) * this.attackMultiplier);
+  }
+
+  getEffectiveAttackSpeed() {
+    return (this.baseAttackSpeed + this.bonusAttackSpeed) * this.attackSpeedMultiplier * this.tempEffects.speedBoost;
+  }
+
+  getEffectiveArmor() {
+    return Math.floor((this.baseArmor + this.bonusArmor) * this.armorMultiplier) + this.tempEffects.bonusArmor;
+  }
+
+  get maxHp() {
+    return this.getMaxHp();
+  }
+
+  get attack() {
+    return this.getEffectiveAttack();
+  }
+
+  get attackSpeed() {
+    return this.getEffectiveAttackSpeed();
+  }
+
+  get armor() {
+    return this.getEffectiveArmor();
+  }
+
+  get flatReduction() {
+    return this.baseFlatReduction + this.bonusFlatReduction;
+  }
+
+  get critChance() {
+    return Math.min(1.0, this.baseCritChance + this.bonusCritChance);
+  }
+
+  get attackFrame() {
+    return Math.round(20 / this.getEffectiveAttackSpeed());
   }
 
   // 裝備徽章
@@ -56,7 +119,7 @@ class Player {
 
   // 攻擊方法 - 包含重錘效果和生命汲取
   performAttack() {
-    let damage = this.attack;
+    let damage = this.getEffectiveAttack();
     let isCrit = Math.random() < this.critChance || this.tempEffects.guaranteedCrit;
     let isHammerProc = false;
     
@@ -123,26 +186,20 @@ class Player {
     if (this.hammerEffects.fury) {
       this.tempEffects.speedBoost = 1.5;
       this.tempEffects.speedBoostDuration = 3.0;
-      this.updateAttackFrame();
       console.log('🔥 重錘狂怒：攻速+50% 3秒');
     }
   }
 
   // 更新攻擊間隔
   updateAttackFrame() {
-    let effectiveSpeed = this.attackSpeed * this.tempEffects.speedBoost;
+    let effectiveSpeed = this.getEffectiveAttackSpeed();
     
     // 狂戰士效果：血量低於50%時攻速也提升
     if (this.specialEffects.berserker && this.hp / this.maxHp < 0.5) {
       effectiveSpeed *= 1.25; // +25%攻速
     }
     
-    this.attackFrame = Math.round(20 / effectiveSpeed);
-  }
-
-  // 獲取當前有效護甲值
-  getEffectiveArmor() {
-    return this.armor + this.tempEffects.bonusArmor;
+    this.currentAttackFrame = Math.round(20 / effectiveSpeed);
   }
 
   // 受到傷害
@@ -177,7 +234,6 @@ class Player {
       this.tempEffects.speedBoostDuration -= deltaTime;
       if (this.tempEffects.speedBoostDuration <= 0) {
         this.tempEffects.speedBoost = 1.0;
-        this.updateAttackFrame();
         console.log('🔥 重錘狂怒效果結束');
       }
     }
@@ -192,9 +248,51 @@ class Player {
     }
   }
 
-  // 獲取徽章描述（用於UI顯示）
-  getBadgeDescriptions() {
-    return this.badges.map(badge => `${badge.icon} ${badge.name}: ${badge.description}`);
+  // 應用固定值增強（來自徽章）
+  applyFlatBonus(type, value) {
+    switch(type) {
+      case 'hp':
+        this.bonusHp += value;
+        this.hp += value; // 同時增加當前血量
+        break;
+      case 'attack':
+        this.bonusAttack += value;
+        break;
+      case 'attackSpeed':
+        this.bonusAttackSpeed += value;
+        break;
+      case 'armor':
+        this.bonusArmor += value;
+        break;
+      case 'flatReduction':
+        this.bonusFlatReduction += value;
+        break;
+      case 'critChance':
+        this.bonusCritChance += value;
+        break;
+    }
+  }
+
+  // 應用百分比增強（來自升級）
+  applyPercentageBonus(type, multiplier) {
+    const oldMaxHp = this.maxHp;
+    
+    switch(type) {
+      case 'hp':
+        this.hpMultiplier *= (1 + multiplier);
+        // 血量百分比增加時，同時增加當前血量
+        this.hp = Math.min(this.maxHp, this.hp + (this.maxHp - oldMaxHp));
+        break;
+      case 'attack':
+        this.attackMultiplier *= (1 + multiplier);
+        break;
+      case 'attackSpeed':
+        this.attackSpeedMultiplier *= (1 + multiplier);
+        break;
+      case 'armor':
+        this.armorMultiplier *= (1 + multiplier);
+        break;
+    }
   }
 
   // 獲取當前狀態信息
@@ -231,6 +329,11 @@ class Player {
     return status;
   }
 
+  // 獲取徽章描述（用於UI顯示）
+  getBadgeDescriptions() {
+    return this.badges.map(badge => `${badge.icon} ${badge.name}: ${badge.description}`);
+  }
+
   gainExp(amount) {
     this.exp += amount;
     if (this.exp >= this.expToNext) {
@@ -244,9 +347,9 @@ class Player {
     this.expToNext = Math.floor(this.expToNext * 1.2);
     
     // 升級獎勵
-    this.maxHp += 10;
-    this.hp += 10;
-    this.attack += 2;
+    this.bonusHp += 10;
+    this.bonusAttack += 2;
+    this.hp += 10; // 增加當前血量
     
     console.log(`升級！等級: ${this.level}, 血量+10, 攻擊+2`);
   }
@@ -264,14 +367,33 @@ class Player {
       attack: this.attack,
       attackSpeed: this.attackSpeed,
       armor: this.armor,
-      effectiveArmor: this.getEffectiveArmor(),
+      flatReduction: this.flatReduction,
       critChance: this.critChance,
       badges: this.badges.length,
       hammerEffects: this.hammerEffects,
       tempEffects: this.tempEffects,
       hasReflectArmor: this.hasReflectArmor,
       lifesteal: this.lifesteal,
-      specialEffects: this.specialEffects
+      specialEffects: this.specialEffects,
+      // 分離的屬性
+      baseStats: {
+        hp: this.baseHp,
+        attack: this.baseAttack,
+        attackSpeed: this.baseAttackSpeed,
+        armor: this.baseArmor
+      },
+      bonusStats: {
+        hp: this.bonusHp,
+        attack: this.bonusAttack,
+        attackSpeed: this.bonusAttackSpeed,
+        armor: this.bonusArmor
+      },
+      multipliers: {
+        hp: this.hpMultiplier,
+        attack: this.attackMultiplier,
+        attackSpeed: this.attackSpeedMultiplier,
+        armor: this.armorMultiplier
+      }
     };
   }
 }

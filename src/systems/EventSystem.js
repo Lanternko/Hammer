@@ -1,4 +1,6 @@
-// src/systems/EventSystem.js - 簡化版
+// src/systems/EventSystem.js - 徽章可選擇
+import { getRandomBadges } from '../data/badges.js';
+
 class EventSystem {
   constructor(gameManager) {
     this.gameManager = gameManager;
@@ -6,35 +8,13 @@ class EventSystem {
   }
 
   generateShopEvent() {
-    // 簡化的商店選項
-    const badges = [
-      {
-        name: '護甲強化',
-        description: '防禦力+8',
-        icon: '🛡️',
-        cost: 4,
-        effect: { armor: 8 }
-      },
-      {
-        name: '生命強化', 
-        description: '最大生命值+25',
-        icon: '❤️',
-        cost: 5,
-        effect: { maxHp: 25 }
-      },
-      {
-        name: '攻速提升',
-        description: '攻擊速度+15%',
-        icon: '⚡',
-        cost: 6,
-        effect: { attackSpeed: 0.075 }
-      }
-    ];
+    // 使用徽章系統生成三個選項
+    const badges = getRandomBadges(3, this.gameManager.currentLevel);
     
     this.currentEvent = {
       type: 'shop',
       title: '🏪 神秘商店',
-      description: '一位神秘商人出現了，他有一些有趣的物品...',
+      description: '一位神秘商人出現了，他有一些有趣的物品... (三選一)',
       options: badges
     };
     
@@ -74,7 +54,7 @@ class EventSystem {
       border: 2px solid #4ecdc4;
       border-radius: 20px;
       padding: 30px;
-      max-width: 600px;
+      max-width: 800px;
       width: 90%;
       text-align: center;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
@@ -90,11 +70,10 @@ class EventSystem {
       <p style="color: #ffd700; margin-bottom: 20px; font-size: 18px;">
         💰 金幣: ${this.gameManager.gold}
       </p>
-      <div id="optionContainer" style="display: flex; flex-direction: column; gap: 15px;">
+      <div id="optionContainer" style="display: flex; gap: 20px; justify-content: center; margin-bottom: 20px;">
         ${this.renderOptions()}
       </div>
       <button id="skipBtn" style="
-        margin-top: 20px;
         padding: 10px 20px;
         background: #666;
         color: white;
@@ -102,7 +81,10 @@ class EventSystem {
         border-radius: 10px;
         cursor: pointer;
         font-size: 16px;
-      ">跳過</button>
+        transition: background 0.3s ease;
+      " 
+      onmouseover="this.style.background='#888'" 
+      onmouseout="this.style.background='#666'">跳過 (不購買任何徽章)</button>
     `;
 
     overlay.appendChild(panel);
@@ -118,49 +100,96 @@ class EventSystem {
       
       return `
         <div class="shop-item" data-index="${index}" style="
-          display: flex;
-          align-items: center;
-          padding: 15px;
+          flex: 1;
+          max-width: 250px;
+          padding: 20px;
           background: ${canAfford ? 'rgba(78, 205, 196, 0.1)' : 'rgba(128, 128, 128, 0.1)'};
           border: 2px solid ${canAfford ? '#4ecdc4' : '#666'};
           border-radius: 12px;
           cursor: ${canAfford ? 'pointer' : 'not-allowed'};
           transition: all 0.3s ease;
+          text-align: center;
+          opacity: ${canAfford ? '1' : '0.6'};
         ">
-          <div style="font-size: 30px; margin-right: 15px;">
+          <div style="font-size: 40px; margin-bottom: 15px;">
             ${option.icon}
           </div>
-          <div style="flex: 1; text-align: left;">
-            <div style="color: ${canAfford ? '#4ecdc4' : '#999'}; font-weight: bold; font-size: 18px;">
-              ${option.name}
-            </div>
-            <div style="color: #ccc; font-size: 14px; margin-top: 5px;">
-              ${option.description}
-            </div>
+          <div style="color: ${canAfford ? '#4ecdc4' : '#999'}; font-weight: bold; font-size: 18px; margin-bottom: 8px;">
+            ${option.name}
+          </div>
+          <div style="color: #ccc; font-size: 14px; margin-bottom: 10px; line-height: 1.4;">
+            ${option.description}
+          </div>
+          <div style="
+            margin-bottom: 10px;
+            padding: 5px 10px;
+            background: ${this.getRarityColor(option.rarity)};
+            color: white;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+          ">
+            ${this.getRarityText(option.rarity)}
           </div>
           <div style="
             background: ${canAfford ? '#ffd700' : '#666'};
             color: ${canAfford ? '#000' : '#ccc'};
-            padding: 8px 15px;
+            padding: 10px 15px;
             border-radius: 20px;
             font-weight: bold;
+            font-size: 16px;
           ">
             ${option.cost} 💰
           </div>
+          ${!canAfford ? '<div style="color: #ff6b6b; font-size: 12px; margin-top: 8px;">金幣不足</div>' : ''}
         </div>
       `;
     }).join('');
   }
 
+  getRarityColor(rarity) {
+    switch(rarity) {
+      case 'common': return '#A0A0A0';
+      case 'uncommon': return '#4CAF50';
+      case 'rare': return '#2196F3';
+      case 'epic': return '#9C27B0';
+      case 'legendary': return '#FF9800';
+      default: return '#FFFFFF';
+    }
+  }
+
+  getRarityText(rarity) {
+    switch(rarity) {
+      case 'common': return '普通';
+      case 'uncommon': return '罕見';
+      case 'rare': return '稀有';
+      case 'epic': return '史詩';
+      case 'legendary': return '傳說';
+      default: return '';
+    }
+  }
+
   bindEventHandlers() {
     // 徽章購買
     document.querySelectorAll('.shop-item').forEach((item, index) => {
-      item.addEventListener('click', () => {
-        const option = this.currentEvent.options[index];
-        if (this.gameManager.gold >= option.cost) {
+      const option = this.currentEvent.options[index];
+      const canAfford = this.gameManager.gold >= option.cost;
+      
+      if (canAfford) {
+        item.addEventListener('click', () => {
           this.buyBadge(option);
-        }
-      });
+        });
+
+        item.addEventListener('mouseenter', () => {
+          item.style.transform = 'scale(1.05)';
+          item.style.boxShadow = '0 8px 25px rgba(78, 205, 196, 0.4)';
+        });
+
+        item.addEventListener('mouseleave', () => {
+          item.style.transform = 'scale(1)';
+          item.style.boxShadow = 'none';
+        });
+      }
     });
 
     // 跳過按鈕
@@ -181,7 +210,7 @@ class EventSystem {
       
       setTimeout(() => {
         this.closeEvent();
-      }, 1500);
+      }, 2000);
     }
   }
 
@@ -202,14 +231,47 @@ class EventSystem {
         <h2 style="color: #4ecdc4; margin-bottom: 10px;">
           購買成功！
         </h2>
-        <p style="color: #ffd700; font-size: 18px;">
-          獲得徽章: ${badge.name}
-        </p>
-        <p style="color: #ccc; font-size: 14px;">
+        <h3 style="color: #ffd700; font-size: 20px; margin-bottom: 10px;">
+          ${badge.name}
+        </h3>
+        <p style="color: #ccc; font-size: 16px; margin-bottom: 15px;">
           ${badge.description}
+        </p>
+        <div style="
+          margin-bottom: 15px;
+          padding: 8px 15px;
+          background: ${this.getRarityColor(badge.rarity)};
+          color: white;
+          border-radius: 20px;
+          font-size: 14px;
+          font-weight: bold;
+          display: inline-block;
+        ">
+          ${this.getRarityText(badge.rarity)} 徽章
+        </div>
+        <p style="color: #ffd700; font-size: 16px;">
+          剩餘金幣: ${this.gameManager.gold} 💰
         </p>
       </div>
     `;
+
+    // 添加脈衝動畫
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes pulse {
+        0% { transform: scale(0.8); opacity: 0; }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+
+    // 清理動畫樣式
+    setTimeout(() => {
+      if (style.parentNode) {
+        style.remove();
+      }
+    }, 2000);
   }
 
   closeEvent() {

@@ -1,4 +1,4 @@
-// src/data/badges.js - 包含反甲徽章
+// src/data/badges.js - 修復徽章系統 (徽章給固定值，升級給百分比)
 export const BadgeData = {
   // === 重錘BD核心徽章 ===
   hammerMastery: {
@@ -78,8 +78,8 @@ export const BadgeData = {
   // === 防禦類徽章（固定值）===
   armorBoost: {
     name: '護甲強化',
-    description: '防禦力+10 (固定值)',
-    effect: { armor: 10 },
+    description: '防禦力+12 (固定值)',
+    effect: { flatArmor: 12 },
     cost: 5,
     rarity: 'common',
     icon: '🛡️'
@@ -87,8 +87,8 @@ export const BadgeData = {
   
   armorMajor: {
     name: '護甲精通',
-    description: '防禦力+15 (固定值)',
-    effect: { armor: 15 },
+    description: '防禦力+18 (固定值)',
+    effect: { flatArmor: 18 },
     cost: 8,
     rarity: 'uncommon',
     icon: '🛡️'
@@ -97,8 +97,8 @@ export const BadgeData = {
   // === 血量類徽章（固定值）===
   healthBoost: {
     name: '生命強化', 
-    description: '最大生命值+30 (固定值)',
-    effect: { maxHp: 30 },
+    description: '最大生命值+35 (固定值)',
+    effect: { flatHp: 35 },
     cost: 5,
     rarity: 'common',
     icon: '❤️'
@@ -106,18 +106,18 @@ export const BadgeData = {
   
   healthMajor: {
     name: '生命精通',
-    description: '最大生命值+50 (固定值)',
-    effect: { maxHp: 50 },
+    description: '最大生命值+55 (固定值)',
+    effect: { flatHp: 55 },
     cost: 8,
     rarity: 'uncommon',
     icon: '❤️'
   },
   
-  // === 輸出類徽章（百分比）===
+  // === 輸出類徽章（固定值）===
   powerBoost: {
     name: '力量提升',
-    description: '攻擊力+15% (百分比)',
-    effect: { attackPercent: 0.15 },
+    description: '攻擊力+8 (固定值)',
+    effect: { flatAttack: 8 },
     cost: 6,
     rarity: 'common',
     icon: '⚔️'
@@ -125,8 +125,8 @@ export const BadgeData = {
   
   speedBoost: {
     name: '攻速提升',
-    description: '攻擊速度+20% (百分比)',
-    effect: { attackSpeedPercent: 0.20 },
+    description: '攻擊速度+0.15 (固定值)',
+    effect: { flatAttackSpeed: 0.15 },
     cost: 7,
     rarity: 'uncommon',
     icon: '⚡'
@@ -135,8 +135,8 @@ export const BadgeData = {
   // === 其他有用徽章 ===
   critBoost: {
     name: '暴擊精通',
-    description: '暴擊率+10% (固定值)',
-    effect: { critChance: 0.10 },
+    description: '暴擊率+12% (固定值)',
+    effect: { flatCritChance: 0.12 },
     cost: 8,
     rarity: 'uncommon',
     icon: '💥'
@@ -144,8 +144,8 @@ export const BadgeData = {
   
   vampiric: {
     name: '生命汲取',
-    description: '攻擊時回復5點生命值 (固定值)',
-    effect: { lifesteal: 5 },
+    description: '攻擊時回復3點生命值 (固定值)',
+    effect: { lifesteal: 3 },
     cost: 9,
     rarity: 'rare',
     icon: '🩸'
@@ -172,8 +172,8 @@ export const BadgeData = {
   
   guardian: {
     name: '守護者意志',
-    description: '護甲+8，固減+3，生命值+25',
-    effect: { armor: 8, flatReduction: 3, maxHp: 25 },
+    description: '護甲+10，固減+4，生命值+30 (固定值)',
+    effect: { flatArmor: 10, flatReduction: 4, flatHp: 30 },
     cost: 15,
     rarity: 'legendary',
     icon: '🛡️'
@@ -208,39 +208,31 @@ export const BadgeData = {
   }
 };
 
-// 應用徽章效果到玩家
+// 應用徽章效果到玩家 - 修復為固定值系統
 export function applyBadgeEffectToPlayer(player, badge) {
   const effect = badge.effect;
   
-  // 固定值效果
-  if (effect.maxHp) {
-    player.maxHp += effect.maxHp;
-    player.hp += effect.maxHp;
+  // 固定值效果 (徽章專用)
+  if (effect.flatHp) {
+    player.applyFlatBonus('hp', effect.flatHp);
   }
-  if (effect.attack) player.attack += effect.attack;
-  if (effect.armor) player.armor += effect.armor;
-  if (effect.attackSpeed) {
-    player.attackSpeed += effect.attackSpeed;
-    player.attackFrame = Math.round(20 / player.attackSpeed);
+  if (effect.flatAttack) {
+    player.applyFlatBonus('attack', effect.flatAttack);
   }
-  if (effect.critChance) player.critChance += effect.critChance;
-  if (effect.flatReduction) player.flatReduction += effect.flatReduction;
+  if (effect.flatArmor) {
+    player.applyFlatBonus('armor', effect.flatArmor);
+  }
+  if (effect.flatAttackSpeed) {
+    player.applyFlatBonus('attackSpeed', effect.flatAttackSpeed);
+  }
+  if (effect.flatCritChance) {
+    player.applyFlatBonus('critChance', effect.flatCritChance);
+  }
+  if (effect.flatReduction) {
+    player.applyFlatBonus('flatReduction', effect.flatReduction);
+  }
   if (effect.lifesteal) {
     player.lifesteal = (player.lifesteal || 0) + effect.lifesteal;
-  }
-  
-  // 百分比效果
-  if (effect.attackPercent) {
-    player.attack = Math.floor(player.attack * (1 + effect.attackPercent));
-  }
-  if (effect.attackSpeedPercent) {
-    player.attackSpeed = player.attackSpeed * (1 + effect.attackSpeedPercent);
-    player.attackFrame = Math.round(20 / player.attackSpeed);
-  }
-  if (effect.maxHpPercent) {
-    const oldMaxHp = player.maxHp;
-    player.maxHp = Math.floor(player.maxHp * (1 + effect.maxHpPercent));
-    player.hp += (player.maxHp - oldMaxHp);
   }
   
   // 重錘BD效果
@@ -262,10 +254,6 @@ export function applyBadgeEffectToPlayer(player, badge) {
     player.specialEffects = player.specialEffects || {};
     player.specialEffects.berserker = true;
   }
-  if (effect.guardian) {
-    player.specialEffects = player.specialEffects || {};
-    player.specialEffects.guardian = true;
-  }
 }
 
 // 商店徽章生成策略（三選一）
@@ -273,13 +261,14 @@ export function getRandomBadges(count = 3, playerLevel = 1) {
   let availableBadges = [];
   
   if (playerLevel <= 5) {
-    // 前期：更多固定值徽章和反甲
+    // 前期：更多基礎徽章和反甲
     availableBadges = [
       { key: 'armorBoost', weight: 3 },
       { key: 'healthBoost', weight: 3 },
+      { key: 'powerBoost', weight: 3 },
       { key: 'damageReduction', weight: 2 },
       { key: 'hammerDuration', weight: 4 },
-      { key: 'reflectArmor', weight: 3 }, // 反甲在前期很有用
+      { key: 'reflectArmor', weight: 3 },
       { key: 'critBoost', weight: 2 },
       { key: 'magicFocus', weight: 1 },
       { key: 'elementalRes', weight: 1 }
@@ -289,7 +278,7 @@ export function getRandomBadges(count = 3, playerLevel = 1) {
     availableBadges = [
       { key: 'hammerWeight', weight: 4 },
       { key: 'hammerDuration', weight: 3 },
-      { key: 'reflectArmor', weight: 4 }, // 反甲持續有用
+      { key: 'reflectArmor', weight: 4 },
       { key: 'armorMajor', weight: 2 },
       { key: 'healthMajor', weight: 2 },
       { key: 'powerBoost', weight: 3 },
@@ -298,12 +287,13 @@ export function getRandomBadges(count = 3, playerLevel = 1) {
       { key: 'rangedMastery', weight: 1 }
     ];
   } else {
-    // 後期：更多百分比和高級徽章
+    // 後期：更多高級徽章
     availableBadges = [
       { key: 'hammerWeight', weight: 5 },
-      { key: 'powerBoost', weight: 4 },
+      { key: 'armorMajor', weight: 3 },
+      { key: 'healthMajor', weight: 3 },
       { key: 'speedBoost', weight: 4 },
-      { key: 'reflectArmor', weight: 3 }, // 後期也有用，對高血量敵人
+      { key: 'reflectArmor', weight: 3 },
       { key: 'berserker', weight: 2 },
       { key: 'guardian', weight: 2 },
       { key: 'vampiric', weight: 3 },
@@ -372,7 +362,7 @@ export const HammerBDStrategy = {
   ],
   
   newStrategy: {
-    // 反甲流派
+    // 反甲流派 (固定值堆疊)
     reflectBuild: ['hammerMastery', 'hammerShield', 'reflectArmor', 'armorMajor', 'healthMajor'],
     // 爆發流派  
     burstBuild: ['hammerMastery', 'hammerStorm', 'hammerWeight', 'critBoost', 'speedBoost'],
@@ -381,5 +371,5 @@ export const HammerBDStrategy = {
   }
 };
 
-console.log('🔨 重錘BD徽章系統已載入 (包含反甲)');
-console.log('⚡ 新增反甲徽章：每受到5次攻擊，對敵人造成其最大血量5%的傷害');
+console.log('🔨 重錘BD徽章系統已載入 (固定值版本)');
+console.log('⚡ 升級給百分比，徽章給固定值，兩者相乘效果更好');

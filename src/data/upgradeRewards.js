@@ -1,14 +1,14 @@
-// src/data/upgradeRewards.js - 升級獎勵系統
+// src/data/upgradeRewards.js - 修復升級獎勵系統
 export const UpgradeRewards = {
-  // 基礎升級選項
+  // 基礎升級選項 - 主要給百分比增強
   baseUpgrades: [
     {
       id: 'power_boost',
       name: '力量增強',
-      icon: '⚔️',
-      description: '攻擊力 +10% (百分比)',
+      icon: '💪',
+      description: '攻擊力 +15% (百分比)',
       type: 'attack',
-      value: 0.1,
+      value: 0.15,
       isPercentage: true,
       rarity: 'common'
     },
@@ -16,29 +16,29 @@ export const UpgradeRewards = {
       id: 'health_boost',
       name: '生命強化',
       icon: '❤️',
-      description: '最大生命值 +10% (百分比)',
+      description: '最大生命值 +15% (百分比)',
       type: 'maxHp',
-      value: 0.1,
+      value: 0.15,
       isPercentage: true,
       rarity: 'common'
     },
     {
-      id: 'armor_mastery',
-      name: '護甲精通',
+      id: 'armor_boost',
+      name: '護甲強化',
       icon: '🛡️',
-      description: '護甲值 +8 (固定值)',
+      description: '護甲值 +15% (百分比)',
       type: 'armor',
-      value: 8,
-      isPercentage: false,
+      value: 0.15,
+      isPercentage: true,
       rarity: 'common'
     },
     {
       id: 'speed_boost',
       name: '速度提升',
       icon: '⚡',
-      description: '攻擊速度 +10% (百分比)',
+      description: '攻擊速度 +15% (百分比)',
       type: 'attackSpeed',
-      value: 0.1,
+      value: 0.15,
       isPercentage: true,
       rarity: 'common'
     },
@@ -46,9 +46,9 @@ export const UpgradeRewards = {
       id: 'crit_mastery',
       name: '精準打擊',
       icon: '💥',
-      description: '暴擊率 +5% (固定值)',
+      description: '暴擊率 +8% (固定值)',
       type: 'critChance',
-      value: 0.05,
+      value: 0.08,
       isPercentage: false,
       rarity: 'uncommon'
     },
@@ -56,9 +56,9 @@ export const UpgradeRewards = {
       id: 'damage_reduction',
       name: '堅韌體質',
       icon: '🔰',
-      description: '固定減傷 +2 (固定值)',
+      description: '固定減傷 +3 (固定值)',
       type: 'flatReduction',
-      value: 2,
+      value: 3,
       isPercentage: false,
       rarity: 'uncommon'
     },
@@ -66,9 +66,9 @@ export const UpgradeRewards = {
       id: 'lifesteal',
       name: '生命汲取',
       icon: '🩸',
-      description: '攻擊時回復3點生命值',
+      description: '攻擊時回復4點生命值',
       type: 'lifesteal',
-      value: 3,
+      value: 4,
       isPercentage: false,
       rarity: 'rare'
     },
@@ -76,9 +76,9 @@ export const UpgradeRewards = {
       id: 'berserker',
       name: '狂戰士',
       icon: '🔴',
-      description: '生命值低於50%時攻擊力+20%',
+      description: '生命值低於50%時攻擊力+25%',
       type: 'berserker',
-      value: 0.2,
+      value: 0.25,
       isPercentage: false,
       rarity: 'legendary'
     }
@@ -90,9 +90,9 @@ export const UpgradeRewards = {
       id: 'massive_power',
       name: '巨力強化',
       icon: '💪',
-      description: '攻擊力 +25% (強化版)',
+      description: '攻擊力 +30% (強化版)',
       type: 'attack',
-      value: 0.25,
+      value: 0.30,
       isPercentage: true,
       rarity: 'rare'
     },
@@ -100,9 +100,9 @@ export const UpgradeRewards = {
       id: 'massive_health',
       name: '巨大生命',
       icon: '💗',
-      description: '最大生命值 +25% (強化版)',
+      description: '最大生命值 +30% (強化版)',
       type: 'maxHp',
-      value: 0.25,
+      value: 0.30,
       isPercentage: true,
       rarity: 'rare'
     },
@@ -110,9 +110,9 @@ export const UpgradeRewards = {
       id: 'super_speed',
       name: '極速強化',
       icon: '⚡',
-      description: '攻擊速度 +25% (強化版)',
+      description: '攻擊速度 +30% (強化版)',
       type: 'attackSpeed',
-      value: 0.25,
+      value: 0.30,
       isPercentage: true,
       rarity: 'rare'
     },
@@ -120,9 +120,9 @@ export const UpgradeRewards = {
       id: 'fortress',
       name: '要塞體質',
       icon: '🏰',
-      description: '護甲+15，固減+3',
+      description: '護甲+20%，固減+5',
       type: 'fortress',
-      value: { armor: 15, flatReduction: 3 },
+      value: { armorPercent: 0.20, flatReduction: 5 },
       isPercentage: false,
       rarity: 'legendary'
     }
@@ -148,46 +148,42 @@ export function applyUpgradeToPlayer(player, upgrade) {
   switch(upgrade.type) {
     case 'attack':
       if (upgrade.isPercentage) {
-        player.attack = Math.floor(player.attack * (1 + upgrade.value));
+        player.applyPercentageBonus('attack', upgrade.value);
       } else {
-        player.attack += upgrade.value;
+        player.applyFlatBonus('attack', upgrade.value);
       }
       break;
       
     case 'maxHp':
       if (upgrade.isPercentage) {
-        const oldMaxHp = player.maxHp;
-        player.maxHp = Math.floor(player.maxHp * (1 + upgrade.value));
-        player.hp = player.maxHp; // 回滿血
+        player.applyPercentageBonus('hp', upgrade.value);
       } else {
-        player.maxHp += upgrade.value;
-        player.hp += upgrade.value;
+        player.applyFlatBonus('hp', upgrade.value);
       }
       break;
       
     case 'armor':
       if (upgrade.isPercentage) {
-        player.armor = Math.floor(player.armor * (1 + upgrade.value));
+        player.applyPercentageBonus('armor', upgrade.value);
       } else {
-        player.armor += upgrade.value;
+        player.applyFlatBonus('armor', upgrade.value);
       }
       break;
       
     case 'attackSpeed':
       if (upgrade.isPercentage) {
-        player.attackSpeed = player.attackSpeed * (1 + upgrade.value);
+        player.applyPercentageBonus('attackSpeed', upgrade.value);
       } else {
-        player.attackSpeed += upgrade.value;
+        player.applyFlatBonus('attackSpeed', upgrade.value);
       }
-      player.attackFrame = Math.round(20 / player.attackSpeed);
       break;
       
     case 'critChance':
-      player.critChance = Math.min(1.0, player.critChance + upgrade.value);
+      player.applyFlatBonus('critChance', upgrade.value);
       break;
       
     case 'flatReduction':
-      player.flatReduction += upgrade.value;
+      player.applyFlatBonus('flatReduction', upgrade.value);
       break;
       
     case 'lifesteal':
@@ -200,8 +196,8 @@ export function applyUpgradeToPlayer(player, upgrade) {
       break;
       
     case 'fortress':
-      player.armor += upgrade.value.armor;
-      player.flatReduction += upgrade.value.flatReduction;
+      player.applyPercentageBonus('armor', upgrade.value.armorPercent);
+      player.applyFlatBonus('flatReduction', upgrade.value.flatReduction);
       break;
   }
   

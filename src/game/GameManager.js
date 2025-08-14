@@ -1,4 +1,4 @@
-// src/game/GameManager.js - 修復戰鬥結算時間
+// src/game/GameManager.js - 護甲懸浮說明修復
 import Player from './Player.js';
 import Enemy from './Enemy.js';
 import BattleSystem from '../systems/BattleSystem.js';
@@ -18,6 +18,9 @@ class GameManager {
     this.diamonds = 0;
     this.battleSystem = null;
     this.eventSystem = new EventSystem(this);
+    
+    // 保存戰鬥速度設定
+    this.battleSpeed = 1; // 預設1倍速
     
     // 創建增強的UI管理器
     this.enhancedUI = new EnhancedUIManager();
@@ -60,17 +63,27 @@ class GameManager {
       this.battleSystem.stop();
     }
     
+    // 創建新的戰鬥系統並繼承速度設定
     this.battleSystem = new BattleSystem(this.player, this.enemy, this);
+    this.battleSystem.setBattleSpeed(this.battleSpeed); // 繼承之前的速度設定
     this.battleSystem.start();
   }
 
-  // 修改 endBattle 方法 - 延長戰鬥結算顯示時間
+  // 設定戰鬥速度的方法，供BattleSystem回調
+  setBattleSpeed(speed) {
+    this.battleSpeed = speed;
+    if (this.battleSystem) {
+      this.battleSystem.setBattleSpeed(speed);
+    }
+    console.log(`🎛️ 全局戰鬥速度設定為 ${speed}x`);
+  }
+
   endBattle(won, battleStats = null) {
     console.log(`⚔️ 戰鬥結束 - ${won ? '✅ 勝利' : '❌ 失敗'}`);
     
     // 顯示戰鬥統計（延長顯示時間到8秒）
     if (battleStats && this.enhancedUI) {
-      this.enhancedUI.showBattleResults(battleStats, this.player, 8000); // 8秒顯示時間
+      this.enhancedUI.showBattleResults(battleStats, this.player, 8000);
     }
     
     if (!won) {
@@ -93,10 +106,10 @@ class GameManager {
     this.player.hp = this.player.maxHp;
     console.log('💚 血量已回滿');
 
-    // 延遲顯示升級選擇，讓玩家有足夠時間看戰鬥結果
+    // 延遲顯示升級選擇
     setTimeout(() => {
       this.showLevelUpChoice(goldReward);
-    }, 3000); // 延長到3秒
+    }, 3000);
   }
 
   showLevelUpChoice(goldReward) {
@@ -157,8 +170,11 @@ class GameManager {
               <div style="color: #4ecdc4; font-weight: bold; font-size: 18px; margin-bottom: 5px;">
                 ${option.name}
               </div>
-              <div style="color: #ccc; font-size: 14px; line-height: 1.4;">
+              <div style="color: #ccc; font-size: 14px; line-height: 1.4; margin-bottom: 10px;">
                 ${option.description}
+              </div>
+              <div style="color: #ffd700; font-size: 12px; font-weight: bold;">
+                詳細效果：${this.getUpgradeEffectDescription(option)}
               </div>
               <div style="
                 margin-top: 10px;
@@ -205,6 +221,32 @@ class GameManager {
         option.style.boxShadow = 'none';
       });
     });
+  }
+
+  // 修復：獲取升級效果詳細描述
+  getUpgradeEffectDescription(upgrade) {
+    const currentValue = this.getCurrentPlayerValue(upgrade.type);
+    let newValue;
+    
+    if (upgrade.isPercentage) {
+      newValue = Math.floor(currentValue * (1 + upgrade.value));
+      return `${currentValue} → ${newValue} (+${(upgrade.value * 100).toFixed(1)}%)`;
+    } else {
+      newValue = currentValue + upgrade.value;
+      return `${currentValue} → ${newValue} (+${upgrade.value})`;
+    }
+  }
+
+  getCurrentPlayerValue(type) {
+    switch(type) {
+      case 'attack': return this.player.getEffectiveAttack();
+      case 'maxHp': return this.player.maxHp;
+      case 'armor': return this.player.getEffectiveArmor();
+      case 'attackSpeed': return this.player.getEffectiveAttackSpeed();
+      case 'critChance': return (this.player.critChance * 100).toFixed(1);
+      case 'flatReduction': return this.player.flatReduction;
+      default: return 0;
+    }
   }
 
   getRarityColor(rarity) {
@@ -444,6 +486,7 @@ class GameManager {
     this.enemy = null;
     this.state = 'battle';
     this.gold = 0;
+    // 保持戰鬥速度設定不重置
     
     // 清理UI
     const existingOverlays = document.querySelectorAll('[id*="Overlay"], .damage-indicator, #speedControl');
@@ -501,11 +544,11 @@ class GameManager {
       heroName.textContent = `🔨 重錘英雄 (${Math.round(this.player.hp)}/${this.player.maxHp})`;
     }
 
-    // 更新統計面板
+    // 更新統計面板 - 修復顯示問題
     const stats = document.querySelectorAll('.stat-value');
     if (stats.length >= 4) {
-      stats[0].textContent = this.player.attack.toFixed(1);
-      stats[1].textContent = this.player.attackSpeed.toFixed(2);
+      stats[0].textContent = this.player.getEffectiveAttack().toFixed(1);
+      stats[1].textContent = this.player.getEffectiveAttackSpeed().toFixed(2);
       stats[2].textContent = this.player.getEffectiveArmor().toFixed(1);
       stats[3].textContent = (this.player.critChance * 100).toFixed(0) + '%';
     }
@@ -524,12 +567,20 @@ class GameManager {
       this.enhancedUI.updateBuffDisplay(this.player);
     }
   }
+
+  // 計算護甲減傷百分比
+  calculateDamageReduction() {
+    const armor = this.player.getEffectiveArmor();
+    const reduction = armor / (armor + 100) * 100;
+    return reduction.toFixed(1);
+  }
 }
 
-// 增強的UI管理器類
+// 增強的UI管理器類 - 修復護甲說明位置
 class EnhancedUIManager {
   constructor() {
     this.createBuffDisplayArea();
+    this.createHoverTooltips(); // 新增懸浮提示
   }
 
   createBuffDisplayArea() {
@@ -563,6 +614,72 @@ class EnhancedUIManager {
     document.body.appendChild(buffPanel);
   }
 
+  // 新增：創建懸浮提示系統
+  createHoverTooltips() {
+    // 為統計面板添加問號圖標和懸浮說明
+    setTimeout(() => {
+      const statsPanel = document.querySelector('.stats-panel');
+      if (statsPanel) {
+        // 找到防禦行
+        const statRows = statsPanel.querySelectorAll('.stat-row');
+        statRows.forEach(row => {
+          const label = row.querySelector('.stat-label');
+          if (label && label.textContent.includes('Defense')) {
+            // 添加問號圖標
+            const helpIcon = document.createElement('span');
+            helpIcon.innerHTML = ' ❓';
+            helpIcon.style.cssText = `
+              cursor: help;
+              margin-left: 5px;
+              font-size: 12px;
+              opacity: 0.7;
+              position: relative;
+            `;
+            
+            // 創建懸浮提示
+            const tooltip = document.createElement('div');
+            tooltip.style.cssText = `
+              position: absolute;
+              bottom: 25px;
+              left: 50%;
+              transform: translateX(-50%);
+              background: rgba(0, 0, 0, 0.9);
+              color: white;
+              padding: 10px;
+              border-radius: 8px;
+              font-size: 12px;
+              line-height: 1.4;
+              width: 200px;
+              z-index: 1000;
+              border: 1px solid rgba(255, 255, 255, 0.2);
+              display: none;
+            `;
+            
+            tooltip.innerHTML = `
+              <strong>🛡️ 減傷機制</strong><br>
+              護甲減傷% = 護甲 ÷ (護甲 + 100)<br>
+              <span style="color: #ffd700;">例: 50護甲 = 33.3%減傷</span><br><br>
+              <strong>計算順序:</strong><br>
+              原始傷害 → 護甲減傷 → 固定減傷 → 最終傷害
+            `;
+            
+            helpIcon.appendChild(tooltip);
+            label.appendChild(helpIcon);
+            
+            // 添加懸浮事件
+            helpIcon.addEventListener('mouseenter', () => {
+              tooltip.style.display = 'block';
+            });
+            
+            helpIcon.addEventListener('mouseleave', () => {
+              tooltip.style.display = 'none';
+            });
+          }
+        });
+      }
+    }, 1000); // 延遲1秒確保DOM加載完成
+  }
+
   updateBuffDisplay(player) {
     const buffList = document.getElementById('buffList');
     if (!buffList) return;
@@ -570,16 +687,16 @@ class EnhancedUIManager {
     const buffs = [];
     
     // 重錘效果
-    if (player.hammerEffects.mastery) buffs.push('🔨 重錘精通');
-    if (player.hammerEffects.storm) buffs.push('🌪️ 重錘風暴');
-    if (player.hammerEffects.shield) buffs.push('🛡️ 重錘護盾');
-    if (player.hammerEffects.heal) buffs.push('💚 重錘恢復');
-    if (player.hammerEffects.fury) buffs.push('🔥 重錘狂怒');
-    if (player.hammerEffects.weight) buffs.push('⚡ 重錘加重');
-    if (player.hammerEffects.duration) buffs.push('⏱️ 重錘延續');
+    if (player.hammerEffects.mastery) buffs.push('🔨 重錘精通 (25%觸發，150%傷害，眩暈1秒)');
+    if (player.hammerEffects.storm) buffs.push('🌪️ 重錘風暴 (重錘觸發時下次必暴擊)');
+    if (player.hammerEffects.shield) buffs.push('🛡️ 重錘護盾 (重錘觸發時+10護甲5秒)');
+    if (player.hammerEffects.heal) buffs.push('💚 重錘恢復 (重錘觸發時+15血量)');
+    if (player.hammerEffects.fury) buffs.push('🔥 重錘狂怒 (重錘觸發時+50%攻速3秒)');
+    if (player.hammerEffects.weight) buffs.push('⚡ 重錘加重 (觸發率35%，傷害170%)');
+    if (player.hammerEffects.duration) buffs.push('⏱️ 重錘延續 (眩暈時間2秒)');
     
     // 反甲效果
-    if (player.hasReflectArmor) buffs.push('⚡ 反甲護盾');
+    if (player.hasReflectArmor) buffs.push('⚡ 反甲護盾 (每受傷5次反彈5%敵人血量)');
     
     // 臨時效果
     const statusInfo = player.getStatusInfo();
