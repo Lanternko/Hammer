@@ -3,6 +3,14 @@
 
 console.log('📁 main.js loaded');
 
+
+// 在 main.js 頂部添加全局狀態追蹤
+let gameInitializationState = {
+  isInitializing: false,
+  isInitialized: false,
+  initializationAttempts: 0
+};
+
 // 全局錯誤處理
 window.addEventListener('error', (event) => {
   console.error('🚨 全局錯誤:', event.error);
@@ -284,24 +292,6 @@ async function initializeGame() {
       console.warn('⚠️ 網路連接可能有問題，但嘗試繼續...');
     }
     
-    // 3. 嘗試導入和使用 ModuleChecker（可選）
-    let moduleReport = null;
-    try {
-      console.log('📦 嘗試載入模組檢查器...');
-      const { ModuleChecker } = await import('./src/utils/ModuleChecker.js');
-      
-      if (ModuleChecker) {
-        const checker = new ModuleChecker();
-        moduleReport = await checker.checkAllModules();
-        
-        if (moduleReport.errorCount > 0) {
-          console.warn(`⚠️ 發現 ${moduleReport.errorCount} 個模組問題，但嘗試繼續...`);
-        }
-      }
-    } catch (checkerError) {
-      console.warn('⚠️ 模組檢查器載入失敗，使用簡化初始化:', checkerError.message);
-    }
-    
     // 4. 載入核心遊戲模組
     console.log('📦 載入核心遊戲模組...');
     
@@ -520,6 +510,12 @@ async function waitForElementsReady() {
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('📄 DOMContentLoaded 事件觸發');
   
+  // 檢查是否已經處理過
+  if (gameInitializationState.initializationAttempts > 0) {
+    console.log('⏭️ DOMContentLoaded: 已處理過，跳過');
+    return;
+  }
+  
   try {
     // 1. 等待 DOM 完全準備好
     await waitForDOMReady();
@@ -546,21 +542,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-// 備用方案：如果 DOMContentLoaded 沒有觸發
+// 修復的備用方案：添加狀態檢查
 window.addEventListener('load', async () => {
   console.log('📄 window.load 事件觸發（備用方案）');
   
-  // 檢查遊戲是否已經初始化
-  if (!window.game) {
-    console.log('🔄 使用備用方案初始化遊戲...');
-    
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500)); // 額外等待
-      await initializeGame();
-    } catch (error) {
-      console.error('❌ 備用初始化也失敗:', error);
-      showErrorMessage('備用載入失敗', error.message);
-    }
+  // 檢查遊戲是否已經初始化或正在初始化
+  if (gameInitializationState.isInitialized || gameInitializationState.isInitializing) {
+    console.log('⏭️ window.load: 遊戲已初始化或正在初始化，跳過備用方案');
+    return;
+  }
+  
+  console.log('🔄 使用備用方案初始化遊戲...');
+  
+  try {
+    await new Promise(resolve => setTimeout(resolve, 500)); // 額外等待
+    await initializeGame();
+  } catch (error) {
+    console.error('❌ 備用初始化也失敗:', error);
+    showErrorMessage('備用載入失敗', error.message);
   }
 });
 
