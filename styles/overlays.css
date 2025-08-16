@@ -1,0 +1,251 @@
+/* styles/overlays.css - 覆蓋層和彈窗樣式 */
+
+/* 🔧 通用覆蓋層樣式 */
+[id*="Overlay"], 
+[class*="overlay"], 
+[class*="screen"] {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+}
+
+/* 升級選擇覆蓋層 */
+#levelUpOverlay {
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* 事件覆蓋層 */
+#eventOverlay {
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* 暫停覆蓋層 */
+#pauseOverlay {
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* 死亡畫面 */
+.death-screen,
+#deathSummaryOverlay {
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    animation: deathSlideIn 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes deathSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateY(30px) scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* 戰鬥結果覆蓋層 */
+.battle-results-overlay {
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(15px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1500;
+    cursor: pointer;
+    animation: fadeInBlur 0.4s ease-out;
+}
+
+.battle-results-overlay .content-panel {
+    pointer-events: none;
+}
+
+@keyframes fadeInBlur {
+    0% {
+        opacity: 0;
+        backdrop-filter: blur(0px);
+        transform: scale(0.95);
+    }
+    100% {
+        opacity: 1;
+        backdrop-filter: blur(15px);
+        transform: scale(1);
+    }
+}
+
+/* 升級選項 */
+.upgrade-option {
+    flex: 1;
+    max-width: 250px;
+    padding: 20px;
+    background: rgba(78, 205, 196, 0.1);
+    border: 2px solid #4ecdc4;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    pointer-events: auto;
+}
+
+.upgrade-option:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 25px rgba(78, 205, 196, 0.4);
+}
+
+/* 繼承徽章 */
+.inheritance-badge {
+    flex: 0 0 auto;
+    min-width: 200px;
+    padding: 15px;
+    background: rgba(255, 215, 0, 0.1);
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: center;
+    transform-origin: center;
+}
+
+.inheritance-badge:hover {
+    transform: translateY(-5px) scale(1.05);
+    border-color: #ffd700;
+    box-shadow: 0 12px 30px rgba(255, 215, 0, 0.3);
+}
+
+.inheritance-badge[data-recommended="true"] {
+    animation: recommendedGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes recommendedGlow {
+    0% {
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+    }
+    100% {
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+    }
+}
+
+/* 商店物品 */
+.shop-item {
+    flex: 1;
+    max-width: 250px;
+    padding: 20px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.shop-item:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 25px rgba(78, 205, 196, 0.4);
+}
+
+/* 點擊提示 */
+.click-hint {
+    animation: clickPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes clickPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 1;
+    }
+}
+
+/* 通用按鈕樣式 */
+button {
+    outline: none !important;
+    user-select: none !important;
+}
+
+button:focus {
+    outline: none !important;
+}
+
+/* 動畫效果 */
+@keyframes fadeOut {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+}
+
+@keyframes confirmPulse {
+    0% { 
+        transform: scale(0.8); 
+        opacity: 0; 
+    }
+    50% { 
+        transform: scale(1.1); 
+    }
+    100% { 
+        transform: scale(1); 
+        opacity: 1; 
+    }
+}
+
+@keyframes badgePulse {
+    0% { 
+        transform: scale(0.5); 
+        opacity: 0; 
+    }
+    50% { 
+        transform: scale(1.1); 
+    }
+    100% { 
+        transform: scale(1); 
+        opacity: 1; 
+    }
+}
+
+@keyframes slideInRight {
+    from { 
+        transform: translateX(100%); 
+        opacity: 0; 
+    }
+    to { 
+        transform: translateX(0); 
+        opacity: 1; 
+    }
+}
+
+@keyframes slideOutRight {
+    from { 
+        transform: translateX(0); 
+        opacity: 1; 
+    }
+    to { 
+        transform: translateX(100%); 
+        opacity: 0; 
+    }
+}

@@ -1,4 +1,4 @@
-// src/systems/BattleSystem.js - 優化版本
+// src/systems/BattleSystem.js - 修復版本
 class BattleSystem {
   constructor(player, enemy, gameManager) {
     this.player = player;
@@ -9,9 +9,9 @@ class BattleSystem {
     this.animationId = null;
     this.lastFrameTime = 0;
     
-    // 戰鬥速度控制（新增10倍速）
-    this.battleSpeed = 1; // 預設1倍速
-    this.baseDeltaTime = 0.1; // 基礎10fps
+    // 戰鬥速度控制
+    this.battleSpeed = 1;
+    this.baseDeltaTime = 0.1;
     this.deltaTime = this.baseDeltaTime / this.battleSpeed;
     
     // 戰鬥統計
@@ -26,25 +26,24 @@ class BattleSystem {
       startTime: Date.now()
     };
     
-    // 初始化戰鬥信息面板
+    // 🔧 修復: 控制 UI 更新頻率
+    this.lastUIUpdate = 0;
+    this.uiUpdateInterval = 100; // 每100ms更新一次UI，減少閃爍
+    
     this.initializeCombatInfo();
   }
 
-  // 新增：創建戰鬥信息面板（替代原本的 Combat Log）
   initializeCombatInfo() {
     const combatInfo = document.querySelector('.combat-log');
     if (combatInfo) {
-      // 清空舊內容
       const existingEntries = combatInfo.querySelectorAll('.log-entry');
       existingEntries.forEach(entry => entry.remove());
       
-      // 修改標題
       const logTitle = combatInfo.querySelector('.log-title');
       if (logTitle) {
         logTitle.textContent = '📊 戰鬥數據';
       }
       
-      // 創建實時數據顯示區域
       this.createRealTimeStats();
     }
   }
@@ -53,8 +52,13 @@ class BattleSystem {
     const combatInfo = document.querySelector('.combat-log');
     const logTitle = combatInfo.querySelector('.log-title');
     
-    // 創建實時統計容器
-    const statsContainer = document.createElement('div');
+    // 🔧 修復: 避免重複創建
+    let statsContainer = document.getElementById('realTimeStats');
+    if (statsContainer) {
+      statsContainer.remove();
+    }
+    
+    statsContainer = document.createElement('div');
     statsContainer.id = 'realTimeStats';
     statsContainer.style.cssText = `
       padding: 10px 0;
@@ -63,8 +67,6 @@ class BattleSystem {
     `;
     
     logTitle.insertAdjacentElement('afterend', statsContainer);
-    
-    // 初始化顯示
     this.updateRealTimeStats();
   }
 
@@ -72,20 +74,14 @@ class BattleSystem {
     const statsContainer = document.getElementById('realTimeStats');
     if (!statsContainer) return;
     
-    // 只在第一次創建時設置標題，避免重複顯示
     if (!statsContainer.hasAttribute('data-initialized')) {
       statsContainer.setAttribute('data-initialized', 'true');
     }
     
-    // 計算玩家 DPS 和防禦能力
     const playerDPS = this.calculatePlayerDPS();
     const playerDefense = this.calculatePlayerDefense();
-    
-    // 計算敵人 DPS 和防禦能力
     const enemyDPS = this.calculateEnemyDPS();
     const enemyDefense = this.calculateEnemyDefense();
-    
-    // 計算預期戰鬥時間
     const expectedBattleTime = this.calculateExpectedBattleTime(playerDPS, enemyDPS, playerDefense, enemyDefense);
     
     statsContainer.innerHTML = `
@@ -119,8 +115,8 @@ class BattleSystem {
   calculatePlayerDPS() {
     const attack = this.player.getEffectiveAttack();
     const attackSpeed = this.player.getEffectiveAttackSpeed();
-    const critMultiplier = 1 + (this.player.critChance * 1.0); // 暴擊額外100%傷害
-    const hammerMultiplier = 1 + (this.getHammerRate() / 100 * 0.5); // 重錘額外50%傷害
+    const critMultiplier = 1 + (this.player.critChance * 1.0);
+    const hammerMultiplier = 1 + (this.getHammerRate() / 100 * 0.5);
     
     return attack * attackSpeed * critMultiplier * hammerMultiplier;
   }
@@ -148,7 +144,6 @@ class BattleSystem {
   }
 
   calculateExpectedBattleTime(playerDPS, enemyDPS, playerDefense, enemyDefense) {
-    // 簡化計算：基於雙方DPS和血量
     const playerEffectiveHP = this.player.hp;
     const enemyEffectiveHP = this.enemy.hp;
     
@@ -158,7 +153,6 @@ class BattleSystem {
     return Math.min(playerTimeToKill, enemyTimeToKill).toFixed(1);
   }
 
-  // 設定戰鬥速度 - 新增10倍速
   setBattleSpeed(speed) {
     this.battleSpeed = speed;
     this.deltaTime = this.baseDeltaTime / this.battleSpeed;
@@ -173,14 +167,13 @@ class BattleSystem {
     this.isActive = true;
     this.battleStats.startTime = Date.now();
     this.lastFrameTime = performance.now();
+    this.lastUIUpdate = performance.now();
     
-    // 添加速度控制按鈕（包含10倍速）
     this.createSpeedControlUI();
     this.loop();
   }
 
   createSpeedControlUI() {
-    // 檢查是否已存在
     if (document.getElementById('speedControl')) return;
     
     const speedControl = document.createElement('div');
@@ -204,9 +197,9 @@ class BattleSystem {
         <button id="pauseBtn" onclick="window.gameManager?.togglePause()" style="padding: 5px 12px; background: #FF6B6B; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px; margin-right: 5px;">⏸️ 暫停</button>
       </div>
       <div>
-        <button onclick="window.gameManager?.setBattleSpeed(1)" style="margin-right: 5px; padding: 5px 8px; background: ${this.battleSpeed === 1 ? '#4CAF50' : '#666'}; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px;">1x</button>
-        <button onclick="window.gameManager?.setBattleSpeed(3)" style="margin-right: 5px; padding: 5px 8px; background: ${this.battleSpeed === 3 ? '#FF9800' : '#666'}; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px;">3x</button>
-        <button onclick="window.gameManager?.setBattleSpeed(10)" style="padding: 5px 8px; background: ${this.battleSpeed === 10 ? '#E91E63' : '#666'}; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px;">10x</button>
+        <button class="speed-btn" data-speed="1" onclick="window.gameManager?.setBattleSpeed(1)" style="margin-right: 5px; padding: 5px 8px; background: ${this.battleSpeed === 1 ? '#4CAF50' : '#666'}; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px;">1x</button>
+        <button class="speed-btn" data-speed="3" onclick="window.gameManager?.setBattleSpeed(3)" style="margin-right: 5px; padding: 5px 8px; background: ${this.battleSpeed === 3 ? '#FF9800' : '#666'}; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px;">3x</button>
+        <button class="speed-btn" data-speed="10" onclick="window.gameManager?.setBattleSpeed(10)" style="padding: 5px 8px; background: ${this.battleSpeed === 10 ? '#E91E63' : '#666'}; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px;">10x</button>
       </div>
     `;
     
@@ -215,7 +208,6 @@ class BattleSystem {
     window.gameManager.isPaused = false;
   }
 
-  // 新增暫停功能
   togglePause() {
     if (!this.gameManager) return;
     
@@ -319,7 +311,6 @@ class BattleSystem {
   getPlayerBuffsForPause() {
     const buffs = [];
     
-    // 重錘效果
     if (this.player.hammerEffects.mastery) buffs.push('🔨 重錘精通: 25%機率150%傷害+眩暈');
     if (this.player.hammerEffects.storm) buffs.push('🌪️ 重錘風暴: 重錘觸發時下次必暴擊');
     if (this.player.hammerEffects.shield) buffs.push('🛡️ 重錘護盾: 重錘觸發時+10護甲5秒');
@@ -328,14 +319,16 @@ class BattleSystem {
     if (this.player.hammerEffects.weight) buffs.push('⚡ 重錘加重: 觸發率35%，傷害170%');
     if (this.player.hammerEffects.duration) buffs.push('⏱️ 重錘延續: 眩暈時間2秒');
     
-    // 其他效果
     if (this.player.hasReflectArmor) buffs.push('⚡ 反甲護盾: 每受傷5次反彈5%敵人血量');
-    if (this.player.lifesteal > 0) buffs.push(`🩸 生命汲取: 攻擊時回復${this.player.lifesteal}點血量`);
-    if (this.player.specialEffects?.berserker) buffs.push('🔴 狂戰士: 血量<50%時攻擊力+30%，攻速+25%');
     
-    // 臨時效果
-    const tempEffects = this.player.getStatusInfo();
-    buffs.push(...tempEffects);
+    const statusInfo = this.player.getStatusInfo();
+    buffs.push(...statusInfo);
+    
+    this.player.badges.forEach(badge => {
+      if (!badge.key || !badge.key.includes('hammer')) {
+        buffs.push(`${badge.icon} ${badge.name}`);
+      }
+    });
 
     return buffs.length > 0 
       ? buffs.map(buff => `<div style="margin-bottom: 3px;">• ${buff}</div>`).join('')
@@ -354,7 +347,6 @@ class BattleSystem {
       this.animationId = null;
     }
     
-    // 清理速度控制UI
     const speedControl = document.getElementById('speedControl');
     if (speedControl) speedControl.remove();
     window.gameManager = null;
@@ -366,7 +358,6 @@ class BattleSystem {
     const currentTime = performance.now();
     const realDeltaTime = (currentTime - this.lastFrameTime) / 1000;
     
-    // 根據戰鬥速度調整更新頻率
     if (realDeltaTime >= this.deltaTime) {
       this.tick();
       this.lastFrameTime = currentTime;
@@ -378,30 +369,24 @@ class BattleSystem {
   tick() {
     if (!this.isActive || this.gameManager.isPaused) return;
 
-    // 更新玩家臨時效果
     this.player.updateTempEffects(this.deltaTime);
 
-    // 增加攻擊幀計數
     this.player.currentFrame = Math.min(this.player.attackFrame, this.player.currentFrame + 1);
     
-    // 敵人只有在非眩暈狀態下才增加攻擊幀
     if (!this.enemy.isStunned) {
       this.enemy.currentFrame = Math.min(this.enemy.attackFrame, this.enemy.currentFrame + 1);
     }
 
-    // 玩家攻擊檢查
     if (this.player.currentFrame >= this.player.attackFrame) {
       this.processPlayerAttack();
       this.player.currentFrame = 0;
     }
 
-    // 敵人攻擊檢查
     if (this.enemy.currentFrame >= this.enemy.attackFrame && this.isActive && !this.enemy.isStunned) {
       this.processEnemyAttack();
       this.enemy.currentFrame = 0;
     }
 
-    // 更新敵人眩暈狀態
     if (this.enemy.isStunned && this.enemy.stunDuration > 0) {
       this.enemy.stunDuration -= this.deltaTime;
       if (this.enemy.stunDuration <= 0) {
@@ -411,10 +396,13 @@ class BattleSystem {
       }
     }
 
-    // 更新UI顯示
-    this.updateBattleDisplay();
+    // 🔧 修復: 降低UI更新頻率，減少閃爍
+    const currentTime = performance.now();
+    if (currentTime - this.lastUIUpdate >= this.uiUpdateInterval) {
+      this.updateBattleDisplay();
+      this.lastUIUpdate = currentTime;
+    }
     
-    // 每60幀更新一次實時統計（降低更新頻率）
     if (this.frameCount % 60 === 0) {
       this.updateRealTimeStats();
     }
@@ -426,20 +414,16 @@ class BattleSystem {
     const attackResult = this.player.performAttack();
     const { damage, isCrit, isHammerProc } = attackResult;
     
-    // 更新統計
     this.battleStats.playerAttackCount++;
     this.battleStats.playerTotalDamage += damage;
     if (isCrit) this.battleStats.critCount++;
     if (isHammerProc) this.battleStats.hammerProcCount++;
     
-    // 計算敵人實際受到的傷害
     const reducedDmg = Math.max(1, damage - this.enemy.defense);
     this.enemy.hp = Math.max(0, this.enemy.hp - reducedDmg);
     
-    // 顯示傷害數字
     this.showDamageNumber(reducedDmg, isCrit || isHammerProc, false);
     
-    // 重錘精通的眩暈效果 - 使用新的平衡眩暈時間
     if (isHammerProc && this.player.hammerEffects.mastery) {
       const stunDuration = this.player.getHammerStunDuration();
       this.enemy.isStunned = true;
@@ -448,7 +432,6 @@ class BattleSystem {
       console.log(`😵 敵人被重錘眩暈 ${stunDuration.toFixed(1)} 秒！`);
     }
     
-    // 檢查敵人是否死亡
     if (this.enemy.hp <= 0) {
       console.log('🏆 敵人被擊敗！');
       this.endBattle(true);
@@ -459,24 +442,19 @@ class BattleSystem {
   processEnemyAttack() {
     const rawDmg = this.enemy.attack;
     
-    // 計算傷害：先護甲百分比減傷，再固定減傷
     const armorReduction = rawDmg / (1 + this.player.getEffectiveArmor() / 100);
     const finalDmg = Math.max(1, armorReduction - this.player.flatReduction);
     this.player.hp = Math.max(0, this.player.hp - finalDmg);
     
-    // 更新統計
     this.battleStats.enemyAttackCount++;
     this.battleStats.playerDamageReceived += finalDmg;
     this.battleStats.playerDamageDealtCount++;
     
-    // 顯示傷害數字（新增：顯示受到的傷害量）
     this.showDamageNumber(finalDmg, false, true);
-    this.showFloatingDamage(finalDmg, true); // 新增浮動傷害顯示
+    this.showFloatingDamage(finalDmg, true);
     
-    // 檢查反甲徽章效果
     this.checkReflectArmor();
     
-    // 檢查玩家是否死亡
     if (this.player.hp <= 0) {
       console.log('💀 玩家被擊敗！');
       this.endBattle(false);
@@ -484,7 +462,6 @@ class BattleSystem {
     }
   }
 
-  // 新增：浮動傷害顯示（在血條旁邊）
   showFloatingDamage(damage, isPlayerTaking) {
     const healthContainer = document.querySelector(isPlayerTaking ? '.hero .health-container' : '.enemy .health-container');
     if (!healthContainer) return;
@@ -507,11 +484,9 @@ class BattleSystem {
       z-index: 1000;
     `;
     
-    // 確保容器是相對定位
     healthContainer.style.position = 'relative';
     healthContainer.appendChild(floatingDamage);
 
-    // 2秒後移除
     setTimeout(() => {
       if (floatingDamage.parentNode) {
         floatingDamage.remove();
@@ -547,10 +522,9 @@ class BattleSystem {
     console.log(`❤️ 剩餘血量: ${this.player.hp.toFixed(1)}/${this.player.maxHp}`);
     console.log('==================\n');
     
-    // 立即傳遞戰鬥統計給GameManager（縮短延遲）
     setTimeout(() => {
       this.gameManager.endBattle(won, this.battleStats);
-    }, 100); // 從原來的可能更長時間縮短到100ms
+    }, 100);
   }
 
   showDamageNumber(damage, isCritical, isEnemyAttack, prefix = '') {
@@ -572,7 +546,6 @@ class BattleSystem {
     
     damageIndicator.textContent = displayText;
     
-    // 隨機位置偏移，避免重疊
     const randomOffset = Math.random() * 60 - 30;
     
     damageIndicator.style.cssText = `
@@ -600,7 +573,6 @@ class BattleSystem {
   }
 
   updateBattleDisplay() {
-    // 更新敵人名稱和狀態
     const enemyName = document.querySelector('.enemy .character-name');
     if (enemyName && this.enemy) {
       let nameText = `${this.enemy.emoji} ${this.enemy.getTypeName()} 攻擊${this.enemy.attack}`;
@@ -610,7 +582,6 @@ class BattleSystem {
       enemyName.textContent = nameText;
     }
 
-    // 更新玩家血條
     const heroHealthFill = document.querySelector('.hero .health-fill');
     const heroHealthText = document.querySelector('.hero .health-text');
     if (heroHealthFill && heroHealthText) {
@@ -619,7 +590,6 @@ class BattleSystem {
       heroHealthText.textContent = `${Math.round(this.player.hp)} / ${this.player.maxHp}`;
     }
 
-    // 更新敵人血條
     const enemyHealthFill = document.querySelector('.enemy .health-fill');
     const enemyHealthText = document.querySelector('.enemy .health-text');
     if (enemyHealthFill && enemyHealthText && this.enemy) {
@@ -628,7 +598,6 @@ class BattleSystem {
       enemyHealthText.textContent = `${Math.round(this.enemy.hp)} / ${this.enemy.maxHp}`;
     }
 
-    // 更新攻擊進度條
     const heroAttackFill = document.querySelector('.hero .attack-fill');
     if (heroAttackFill) {
       const attackPercent = Math.min(100, (this.player.currentFrame / this.player.attackFrame) * 100);
@@ -642,7 +611,6 @@ class BattleSystem {
       }
     }
 
-    // 更新敵人攻擊進度條
     const enemyAttackFill = document.querySelector('.enemy .attack-fill');
     if (enemyAttackFill && this.enemy) {
       if (this.enemy.isStunned) {
@@ -662,24 +630,29 @@ class BattleSystem {
       }
     }
 
-    // 更新速度控制按鈕顏色
-    this.updateSpeedControlButtons();
-
-    // 更新GameManager的統計顯示
+    // 🔧 修復: 避免過度更新速度控制按鈕，減少閃爍
+    this.updateSpeedControlButtonsThrottled();
     this.gameManager.updatePlayerStats();
   }
 
-  updateSpeedControlButtons() {
-    const speedControl = document.getElementById('speedControl');
-    if (speedControl) {
-      const buttons = speedControl.querySelectorAll('button');
-      // 只有暫停按鈕是第一個，速度按鈕從第2個開始
-      if (buttons.length >= 4) {
-        buttons[1].style.background = this.battleSpeed === 1 ? '#4CAF50' : '#666';
-        buttons[2].style.background = this.battleSpeed === 3 ? '#FF9800' : '#666';
-        buttons[3].style.background = this.battleSpeed === 10 ? '#E91E63' : '#666';
-      }
+  // 🔧 修復: 節流版本的速度控制按鈕更新
+  updateSpeedControlButtonsThrottled() {
+    if (!this.lastSpeedUpdate || Date.now() - this.lastSpeedUpdate > 500) {
+      this.updateSpeedControlButtons();
+      this.lastSpeedUpdate = Date.now();
     }
+  }
+
+  updateSpeedControlButtons() {
+    const speedButtons = document.querySelectorAll('.speed-btn');
+    speedButtons.forEach(button => {
+      const speed = parseInt(button.dataset.speed);
+      if (speed === this.battleSpeed) {
+        button.style.background = speed === 1 ? '#4CAF50' : speed === 3 ? '#FF9800' : '#E91E63';
+      } else {
+        button.style.background = '#666';
+      }
+    });
   }
 
   getCurrentStats() {
@@ -743,6 +716,11 @@ if (!document.querySelector('#enhancedBattleAnimations')) {
     
     .attack-fill {
       transition: width 0.1s linear !important;
+    }
+
+    /* 🔧 修復: 減少按鈕閃爍的過渡效果 */
+    .speed-btn {
+      transition: background-color 0.3s ease !important;
     }
   `;
   document.head.appendChild(style);

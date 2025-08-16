@@ -6,6 +6,13 @@
 project/
 ├── index.html                    # 主頁面
 ├── main.js                      # 遊戲入口
+├── styles/                      # 新增 CSS 目錄
+│   ├── main.css                # 主要基礎樣式
+│   ├── character.css           # 角色卡片相關樣式
+│   ├── ui-panels.css           # UI面板樣式
+│   ├── overlays.css            # 覆蓋層和彈窗樣式
+│   ├── z-index.css             # Z-Index層級管理
+│   └── responsive.css          # 響應式設計
 └── src/
     ├── game/
     │   ├── GameManager.js       # 遊戲總控 ✅

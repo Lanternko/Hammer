@@ -1,0 +1,822 @@
+/* styles/responsive.css - 響應式設計和無障礙功能 */
+
+/* 響應式設計 - 平板 */
+@media (max-width: 1024px) {
+    .combat-container {
+        padding: 0 20px;
+    }
+    
+    .character-card {
+        width: 280px;
+        padding: 20px;
+    }
+    
+    .vs-indicator {
+        font-size: 40px;
+    }
+    
+    #speedControl {
+        right: 20px;
+        top: 80px;
+    }
+}
+
+/* 響應式設計 - 手機 */
+@media (max-width: 768px) {
+    .combat-container {
+        flex-direction: column;
+        gap: 30px;
+        padding: 10px;
+    }
+    
+    .character-card {
+        width: 100%;
+        max-width: 300px;
+    }
+    
+    .vs-indicator {
+        position: relative;
+        transform: none;
+        margin: 10px 0;
+        font-size: 36px;
+    }
+    
+    /* UI 面板調整 */
+    .stats-panel {
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+        min-width: auto;
+        padding: 15px;
+    }
+    
+    .combat-log {
+        bottom: 80px;
+        right: 10px;
+        left: 10px;
+        width: auto;
+        height: 150px;
+    }
+    
+    #buffPanel {
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        min-width: auto;
+        max-height: 200px;
+        font-size: 12px;
+    }
+    
+    #speedControl {
+        top: 10px;
+        right: 10px;
+        left: auto;
+    }
+    
+    /* 覆蓋層調整 */
+    .inheritance-badge {
+        min-width: 180px !important;
+        padding: 12px !important;
+    }
+    
+    .battle-results-overlay .content-panel {
+        max-width: 95% !important;
+        padding: 20px !important;
+        margin: 10px;
+    }
+    
+    .upgrade-option {
+        min-width: 150px;
+        padding: 15px;
+        font-size: 14px;
+    }
+    
+    /* 文字大小調整 */
+    .round-counter {
+        font-size: 16px;
+        padding: 10px 20px;
+    }
+    
+    .character-name {
+        font-size: 18px;
+    }
+    
+    .health-text {
+        font-size: 12px;
+    }
+}
+
+/* 小螢幕優化 */
+@media (max-width: 480px) {
+    .combat-arena {
+        padding: 10px;
+    }
+    
+    .round-header {
+        margin-bottom: 20px;
+    }
+    
+    .character-card {
+        padding: 15px;
+    }
+    
+    .vs-indicator {
+        font-size: 30px;
+        margin: 5px 0;
+    }
+    
+    /* 極小螢幕的面板調整 */
+    .stats-panel,
+    .combat-log,
+    #buffPanel {
+        font-size: 11px;
+        padding: 10px;
+    }
+    
+    .stats-title,
+    .log-title {
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+    
+    /* 覆蓋層更緊湊 */
+    [id*="Overlay"] > div {
+        padding: 20px !important;
+        margin: 5px !important;
+    }
+    
+    .upgrade-option {
+        padding: 10px;
+        margin: 5px;
+    }
+    
+    .inheritance-badge {
+        min-width: 160px !important;
+        padding: 10px !important;
+        font-size: 12px;
+    }
+}
+
+/* 橫向模式優化 */
+@media (max-height: 500px) and (orientation: landscape) {
+    .combat-container {
+        flex-direction: row;
+        gap: 20px;
+    }
+    
+    .character-card {
+        width: 250px;
+        padding: 15px;
+    }
+    
+    .vs-indicator {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 30px;
+    }
+    
+    .round-header {
+        margin-bottom: 15px;
+    }
+    
+    .stats-panel,
+    .combat-log,
+    #buffPanel {
+        max-height: 150px;
+        font-size: 12px;
+        padding: 10px;
+    }
+    
+    /* 橫向模式下的覆蓋層調整 */
+    [id*="Overlay"] > div {
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+}
+
+/* 超寬螢幕優化 (21:9 和更寬) */
+@media (min-aspect-ratio: 21/9) {
+    .combat-container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .character-card {
+        width: 350px;
+    }
+    
+    .stats-panel {
+        left: calc((100vw - 1400px) / 2);
+    }
+    
+    .combat-log {
+        right: calc((100vw - 1400px) / 2);
+    }
+    
+    #buffPanel {
+        left: calc((100vw - 1400px) / 2);
+    }
+}
+
+/* 極高解析度顯示器 (4K+) */
+@media (min-width: 2560px) {
+    .character-card {
+        width: 450px;
+        padding: 40px;
+    }
+    
+    .character-name {
+        font-size: 24px;
+    }
+    
+    .health-bar {
+        height: 30px;
+    }
+    
+    .health-text {
+        font-size: 16px;
+    }
+    
+    .vs-indicator {
+        font-size: 64px;
+    }
+    
+    .round-counter {
+        font-size: 24px;
+        padding: 18px 36px;
+    }
+    
+    .stats-panel,
+    .combat-log,
+    #buffPanel {
+        font-size: 18px;
+        padding: 30px;
+        min-width: 350px;
+    }
+    
+    .stats-title,
+    .log-title {
+        font-size: 20px;
+    }
+}
+
+/* 舊版 iPhone SE 和類似小螢幕 */
+@media (max-width: 375px) and (max-height: 667px) {
+    .combat-arena {
+        padding: 5px;
+    }
+    
+    .character-card {
+        padding: 10px;
+        width: 100%;
+        max-width: 280px;
+    }
+    
+    .character-name {
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
+    
+    .health-bar {
+        height: 20px;
+    }
+    
+    .health-text {
+        font-size: 11px;
+    }
+    
+    .attack-progress {
+        height: 8px;
+        margin-bottom: 15px;
+    }
+    
+    .vs-indicator {
+        font-size: 24px;
+        margin: 8px 0;
+    }
+    
+    .round-counter {
+        font-size: 14px;
+        padding: 8px 16px;
+    }
+    
+    .stats-panel,
+    .combat-log,
+    #buffPanel {
+        font-size: 10px;
+        padding: 8px;
+        border-radius: 8px;
+    }
+    
+    #speedControl {
+        font-size: 10px;
+        padding: 6px;
+    }
+    
+    .speed-btn,
+    #pauseBtn {
+        padding: 6px 8px;
+        font-size: 10px;
+        min-height: 36px;
+    }
+}
+
+/* iPad Pro 和大尺寸平板 */
+@media (min-width: 1024px) and (max-width: 1366px) {
+    .character-card {
+        width: 350px;
+        padding: 25px;
+    }
+    
+    .vs-indicator {
+        font-size: 52px;
+    }
+    
+    .stats-panel,
+    .combat-log,
+    #buffPanel {
+        font-size: 15px;
+        padding: 20px;
+        min-width: 280px;
+    }
+    
+    /* 平板上的覆蓋層優化 */
+    .upgrade-option {
+        max-width: 200px;
+        padding: 18px;
+    }
+    
+    .inheritance-badge {
+        min-width: 180px;
+        padding: 18px;
+    }
+}
+
+/* Surface 和類似設備 */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+    .combat-container {
+        flex-direction: column;
+        gap: 40px;
+        padding: 20px;
+    }
+    
+    .character-card {
+        width: 100%;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+    
+    .vs-indicator {
+        position: relative;
+        transform: none;
+        margin: 15px 0;
+        font-size: 44px;
+    }
+    
+    .stats-panel {
+        bottom: 20px;
+        left: 20px;
+        right: auto;
+        max-width: 300px;
+    }
+    
+    .combat-log {
+        bottom: 20px;
+        right: 20px;
+        left: auto;
+        max-width: 300px;
+    }
+    
+    #buffPanel {
+        top: 20px;
+        left: 20px;
+        right: auto;
+        max-width: 300px;
+    }
+}
+
+/* 摺疊螢幕設備 */
+@media (min-width: 600px) and (max-width: 900px) and (min-height: 600px) {
+    .combat-container {
+        flex-direction: column;
+        gap: 30px;
+    }
+    
+    .character-card {
+        width: 100%;
+        max-width: 350px;
+        margin: 0 auto;
+    }
+    
+    .vs-indicator {
+        position: relative;
+        transform: none;
+        margin: 20px 0;
+        font-size: 40px;
+    }
+}
+
+/* 深色模式細節調整 */
+@media (prefers-color-scheme: dark) {
+    .character-card {
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    }
+    
+    .stats-panel,
+    .combat-log,
+    #buffPanel {
+        background: rgba(0, 0, 0, 0.9);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+    }
+    
+    .round-counter {
+        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+    }
+}
+
+/* 高刷新率螢幕優化 */
+@media (min-resolution: 120dpi) {
+    .damage-indicator,
+    .floating-damage {
+        will-change: transform, opacity;
+    }
+    
+    .health-fill,
+    .attack-fill {
+        will-change: width;
+    }
+    
+    .character-card {
+        will-change: transform;
+    }
+}
+
+/* 省電模式優化 */
+@media (prefers-reduced-motion: reduce) {
+    .bg-particles {
+        display: none;
+    }
+    
+    .health-fill::after {
+        display: none;
+    }
+    
+    .damage-indicator,
+    .floating-damage {
+        transition: none;
+        animation: none;
+        opacity: 0.8;
+        position: static;
+        display: inline-block;
+        margin: 2px;
+    }
+}
+
+/* 強制橫向模式的設備 */
+@media (orientation: landscape) and (max-height: 600px) {
+    .round-header {
+        margin-bottom: 10px;
+    }
+    
+    .combat-container {
+        padding: 0 20px;
+    }
+    
+    .character-card {
+        padding: 15px;
+    }
+    
+    .stats-panel,
+    .combat-log {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    
+    #buffPanel {
+        max-height: 180px;
+        overflow-y: auto;
+    }
+}
+
+/* 無障礙功能增強 */
+@media (prefers-contrast: high) {
+    .upgrade-option,
+    .inheritance-badge,
+    .shop-item {
+        border-width: 3px;
+    }
+    
+    .speed-btn,
+    #pauseBtn {
+        border: 2px solid white;
+    }
+    
+    .damage-indicator {
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 1);
+        font-weight: 900;
+    }
+}
+
+/* 大字體模式支持 */
+@media (min-resolution: 192dpi) {
+    .character-name,
+    .health-text,
+    .stat-label,
+    .stat-value {
+        font-weight: 500;
+        text-rendering: optimizeLegibility;
+    }
+}
+
+/* 觸控筆設備優化 */
+@media (pointer: fine) and (hover: hover) {
+    .upgrade-option:hover,
+    .inheritance-badge:hover,
+    .shop-item:hover {
+        transform: scale(1.05) translateY(-2px);
+    }
+    
+    .speed-btn:hover,
+    #pauseBtn:hover {
+        transform: scale(1.1);
+    }
+}
+
+/* 遊戲控制器模式（如果支援） */
+@media (pointer: coarse) and (hover: none) {
+    .upgrade-option,
+    .inheritance-badge,
+    .shop-item {
+        min-height: 60px;
+        border-width: 2px;
+    }
+    
+    .speed-btn,
+    #pauseBtn {
+        min-width: 48px;
+        min-height: 48px;
+        padding: 8px;
+    }
+    
+    /* 焦點指示器增強 */
+    button:focus,
+    .upgrade-option:focus,
+    .inheritance-badge:focus {
+        outline: 3px solid #4ecdc4;
+        outline-offset: 3px;
+    }
+}
+
+/* 極小螢幕的緊急模式 */
+@media (max-width: 320px) {
+    .combat-arena {
+        padding: 2px;
+    }
+    
+    .character-card {
+        padding: 8px;
+        border-radius: 8px;
+    }
+    
+    .character-name {
+        font-size: 14px;
+    }
+    
+    .health-bar {
+        height: 16px;
+        border-radius: 8px;
+    }
+    
+    .health-text {
+        font-size: 10px;
+    }
+    
+    .vs-indicator {
+        font-size: 20px;
+    }
+    
+    .round-counter {
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+    
+    .stats-panel,
+    .combat-log,
+    #buffPanel {
+        font-size: 9px;
+        padding: 6px;
+        min-width: auto;
+        left: 2px !important;
+        right: 2px !important;
+        bottom: 2px !important;
+        top: auto !important;
+    }
+    
+    .combat-log {
+        height: 100px;
+    }
+    
+    #buffPanel {
+        max-height: 80px;
+    }
+}
+
+/* 高解析度螢幕優化 */
+@media (min-width: 1920px) {
+    .character-card {
+        width: 380px;
+        padding: 30px;
+    }
+    
+    .vs-indicator {
+        font-size: 56px;
+    }
+    
+    .stats-panel,
+    .combat-log,
+    #buffPanel {
+        font-size: 16px;
+        padding: 25px;
+        min-width: 300px;
+    }
+    
+    .round-counter {
+        font-size: 20px;
+        padding: 15px 30px;
+    }
+}
+
+/* 減少動畫偏好支持 */
+@media (prefers-reduced-motion: reduce) {
+    .battle-results-overlay,
+    .death-screen,
+    .inheritance-badge,
+    .click-hint,
+    .speed-btn,
+    .upgrade-option,
+    .shop-item,
+    .character-card {
+        animation: none !important;
+        transition: none !important;
+    }
+    
+    .health-fill,
+    .attack-fill {
+        transition: none !important;
+    }
+    
+    .particle {
+        animation: none !important;
+    }
+    
+    .vs-indicator {
+        animation: none !important;
+    }
+    
+    .health-fill::after {
+        animation: none !important;
+    }
+}
+
+/* 高對比度模式支持 */
+@media (prefers-contrast: high) {
+    .character-card {
+        border: 2px solid white;
+        background: rgba(0, 0, 0, 0.9);
+    }
+    
+    .stats-panel,
+    .combat-log,
+    #buffPanel {
+        border: 2px solid white;
+        background: rgba(0, 0, 0, 0.95);
+    }
+    
+    .health-fill,
+    .attack-fill {
+        box-shadow: none;
+    }
+    
+    .hero .health-fill {
+        background: #00FF00;
+    }
+    
+    .enemy .health-fill {
+        background: #FF0000;
+    }
+    
+    .attack-fill {
+        background: #FFFF00;
+    }
+}
+
+/* 深色模式偏好 */
+@media (prefers-color-scheme: dark) {
+    /* 遊戲本身就是深色主題，保持原樣 */
+    body {
+        background: linear-gradient(135deg, #0a0a1a 0%, #0f1420 50%, #061f3a 100%);
+    }
+}
+
+/* 淺色模式偏好（可選） */
+@media (prefers-color-scheme: light) {
+    /* 如果用戶偏好淺色模式，稍微調亮一些 */
+    body {
+        background: linear-gradient(135deg, #2a2a3e 0%, #26314e 50%, #1f4470 100%);
+    }
+    
+    .character-card {
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .stats-panel,
+    .combat-log,
+    #buffPanel {
+        background: rgba(0, 0, 0, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+}
+
+/* 觸控設備優化 */
+@media (hover: none) and (pointer: coarse) {
+    .upgrade-option,
+    .inheritance-badge,
+    .shop-item {
+        padding: 20px;
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    
+    .speed-btn,
+    #pauseBtn {
+        padding: 12px 16px;
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .character-card:hover {
+        transform: none;
+    }
+    
+    .help-icon {
+        padding: 8px;
+        min-height: 32px;
+        min-width: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+/* 鍵盤導航支持 */
+button:focus-visible,
+.upgrade-option:focus-visible,
+.inheritance-badge:focus-visible,
+.shop-item:focus-visible {
+    outline: 2px solid #4ecdc4;
+    outline-offset: 2px;
+}
+
+/* 螢幕閱讀器支持 */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* 列印樣式（隱藏不必要元素） */
+@media print {
+    .bg-particles,
+    .loading-screen,
+    #speedControl,
+    .damage-indicator,
+    .floating-damage,
+    [id*="Overlay"],
+    [class*="overlay"] {
+        display: none !important;
+    }
+    
+    body {
+        background: white !important;
+        color: black !important;
+    }
+    
+    .character-card,
+    .stats-panel,
+    .combat-log {
+        background: white !important;
+        border: 1px solid black !important;
+        color: black !important;
+    }
+}

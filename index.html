@@ -4,470 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Combat Arena - Roguelike Battle</title>
+    
+    <!-- 🔧 模組化 CSS 文件 -->
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/character.css">
+    <link rel="stylesheet" href="styles/ui-panels.css">
+    <link rel="stylesheet" href="styles/overlays.css">
+    <link rel="stylesheet" href="styles/z-index.css">
+    <link rel="stylesheet" href="styles/responsive.css">
+    
+    <!-- 🔧 內聯關鍵樣式（避免 FOUC） -->
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        /* 防止未樣式化內容閃現 */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            height: 100vh;
-            overflow: hidden;
-            position: relative;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
-
-        /* Loading Screen */
+        
+        body.loaded {
+            opacity: 1;
+        }
+        
+        /* 緊急備用樣式 */
         .loading-screen {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background: #1a1a2e;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 9999;
             color: white;
-        }
-
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(255, 255, 255, 0.2);
-            border-top: 4px solid #4ecdc4;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* 背景粒子 */
-        .bg-particles {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            z-index: 0;
-        }
-
-        .particle {
-            position: absolute;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            animation: float 6s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.3; }
-            50% { transform: translateY(-20px) rotate(180deg); opacity: 0.6; }
-        }
-
-        .combat-arena {
-            position: relative;
-            z-index: 1;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-        }
-
-        /* Header */
-        .round-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .round-counter {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 25px;
-            font-size: 18px;
-            font-weight: bold;
-            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
-            display: inline-block;
-        }
-
-        /* Main combat area */
-        .combat-container {
-            flex: 1;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 50px;
-            position: relative;
-        }
-
-        /* Character cards */
-        .character-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-            padding: 25px;
-            width: 320px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s ease;
-        }
-
-        .character-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-        }
-
-        .character-name {
-            font-size: 20px;
-            font-weight: bold;
-            color: white;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .hero .character-name {
-            color: #4ecdc4;
-        }
-
-        .enemy .character-name {
-            color: #ff6b6b;
-        }
-
-        /* Health bars */
-        .health-container {
-            margin-bottom: 20px;
-        }
-
-        .health-bar {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 15px;
-            height: 25px;
-            overflow: hidden;
-            position: relative;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .health-fill {
-            height: 100%;
-            border-radius: 15px;
-            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .hero .health-fill {
-            background: linear-gradient(90deg, #4ecdc4, #44a08d);
-            box-shadow: 0 0 20px rgba(78, 205, 196, 0.5);
-        }
-
-        .enemy .health-fill {
-            background: linear-gradient(90deg, #ff6b6b, #ee5a24);
-            box-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
-        }
-
-        .health-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-            animation: shine 2s infinite;
-        }
-
-        @keyframes shine {
-            0% { left: -100%; }
-            100% { left: 100%; }
-        }
-
-        .health-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            font-weight: bold;
-            font-size: 14px;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
-        }
-
-        /* Attack progress bars */
-        .attack-progress {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            height: 12px;
-            overflow: hidden;
-            margin-bottom: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .attack-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #ffd700, #ffb347);
-            border-radius: 10px;
-            transition: width 0.3s ease;
-            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-        }
-
-        /* VS indicator */
-        .vs-indicator {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 48px;
-            font-weight: bold;
-            color: white;
-            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
-            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
-        }
-
-        /* Damage indicators */
-        .damage-indicator {
-            position: absolute;
-            font-size: 24px;
-            font-weight: bold;
-            color: #ff4757;
-            text-shadow: 0 0 10px rgba(255, 71, 87, 0.8);
-            animation: damageFloat 1.5s ease-out forwards;
-            pointer-events: none;
-        }
-
-        @keyframes damageFloat {
-            0% {
-                opacity: 1;
-                transform: translateY(0) scale(0.5);
-            }
-            50% {
-                transform: translateY(-30px) scale(1.2);
-            }
-            100% {
-                opacity: 0;
-                transform: translateY(-60px) scale(1);
-            }
-        }
-
-        /* Stats panel */
-        .stats-panel {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-            padding: 20px;
-            color: white;
-            min-width: 250px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-            z-index: 100;
-        }
-
-        .stats-title {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            color: #4ecdc4;
-            border-bottom: 1px solid rgba(78, 205, 196, 0.3);
-            padding-bottom: 8px;
-        }
-
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .stat-label {
-            display: flex;
-            align-items: center;
-            font-size: 14px;
-        }
-
-        .stat-value {
-            font-weight: bold;
-            color: #ffd700;
-        }
-
-        /* Combat Log */
-        .combat-log {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-            padding: 20px;
-            color: white;
-            width: 300px;
-            height: 200px;
-            overflow-y: auto;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-            z-index: 150;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
-        }
-
-        .combat-log::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .combat-log::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-        }
-
-        .combat-log::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 3px;
-        }
-
-        .combat-log::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.5);
-        }
-
-        .log-title {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            color: #ff6b6b;
-            border-bottom: 1px solid rgba(255, 107, 107, 0.3);
-            padding-bottom: 8px;
-            position: sticky;
-            top: 0;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1;
-        }
-
-        .log-entry {
-            font-size: 13px;
-            margin-bottom: 8px;
-            padding: 5px 8px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.05);
-            border-left: 3px solid #4ecdc4;
-            animation: logFadeIn 0.3s ease-in;
-            word-wrap: break-word;
-            line-height: 1.3;
-        }
-
-        .log-entry.enemy {
-            border-left-color: #ff6b6b;
-        }
-
-        @keyframes logFadeIn {
-            0% { opacity: 0; transform: translateX(-20px); }
-            100% { opacity: 1; transform: translateX(0); }
-        }
-
-        /* 優化動畫效果 */
-        .battle-results-overlay {
-            backdrop-filter: blur(15px) !important;
-            animation: fadeInBlur 0.4s ease-out;
-        }
-
-        @keyframes fadeInBlur {
-            0% {
-                opacity: 0;
-                backdrop-filter: blur(0px);
-                transform: scale(0.95);
-            }
-            100% {
-                opacity: 1;
-                backdrop-filter: blur(15px);
-                transform: scale(1);
-            }
-        }
-
-        .death-screen {
-            animation: deathSlideIn 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-
-        @keyframes deathSlideIn {
-            0% {
-                opacity: 0;
-                transform: translateY(30px) scale(0.9);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        .inheritance-badge {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        }
-
-        .inheritance-badge:hover {
-            transform: translateY(-5px) scale(1.05) !important;
-            box-shadow: 0 12px 30px rgba(255, 215, 0, 0.3) !important;
-        }
-
-        .inheritance-badge[data-recommended="true"] {
-            animation: recommendedGlow 2s ease-in-out infinite alternate;
-        }
-
-        @keyframes recommendedGlow {
-            0% {
-                box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
-            }
-            100% {
-                box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
-            }
-        }
-
-        .click-hint {
-            animation: clickPulse 1.5s ease-in-out infinite;
-        }
-
-        @keyframes clickPulse {
-            0%, 100% {
-                transform: scale(1);
-                opacity: 0.8;
-            }
-            50% {
-                transform: scale(1.05);
-                opacity: 1;
-            }
-        }
-
-        /* 響應式設計 */
-        @media (max-width: 768px) {
-            .inheritance-badge {
-                min-width: 180px !important;
-                padding: 12px !important;
-            }
-            
-            .battle-results-overlay .content-panel {
-                max-width: 95% !important;
-                padding: 20px !important;
-            }
-        }
-
-        /* 減少動畫偏好支持 */
-        @media (prefers-reduced-motion: reduce) {
-            .battle-results-overlay,
-            .death-screen,
-            .inheritance-badge,
-            .click-hint {
-                animation: none !important;
-                transition: none !important;
-            }
         }
     </style>
 </head>
@@ -565,12 +135,14 @@
     </div>
     
     <script>
-        // 創建背景粒子（統一版本）
+        // 🔧 優化的頁面載入處理
         function createParticles() {
             const container = document.querySelector('.bg-particles');
             if (!container) return;
 
-            for (let i = 0; i < 30; i++) {
+            const particleCount = window.innerWidth < 768 ? 15 : 30; // 響應式粒子數量
+            
+            for (let i = 0; i < particleCount; i++) {
                 const particle = document.createElement('div');
                 particle.className = 'particle';
                 particle.style.left = Math.random() * 100 + '%';
@@ -583,19 +155,110 @@
             }
         }
 
-        // 初始化粒子
-        createParticles();
-
-        // 隱藏載入畫面
-        setTimeout(() => {
-            const loadingScreen = document.getElementById('loadingScreen');
-            if (loadingScreen) {
-                loadingScreen.style.opacity = '0';
+        // 🔧 CSS 載入檢查
+        function checkCSSLoaded() {
+            return new Promise((resolve) => {
+                const checkInterval = setInterval(() => {
+                    const testElement = document.querySelector('.combat-arena');
+                    if (testElement && getComputedStyle(testElement).position === 'relative') {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 100);
+                
+                // 超時處理
                 setTimeout(() => {
+                    clearInterval(checkInterval);
+                    console.warn('CSS 載入超時，繼續初始化');
+                    resolve();
+                }, 3000);
+            });
+        }
+
+        // 🔧 優化的初始化序列
+        async function initializePage() {
+            try {
+                // 1. 等待 CSS 載入
+                await checkCSSLoaded();
+                
+                // 2. 創建粒子效果
+                createParticles();
+                
+                // 3. 標記頁面已載入
+                document.body.classList.add('loaded');
+                
+                // 4. 延遲隱藏載入畫面
+                setTimeout(() => {
+                    const loadingScreen = document.getElementById('loadingScreen');
+                    if (loadingScreen) {
+                        loadingScreen.style.opacity = '0';
+                        setTimeout(() => {
+                            loadingScreen.style.display = 'none';
+                        }, 500);
+                    }
+                }, 800);
+                
+            } catch (error) {
+                console.error('頁面初始化錯誤:', error);
+                // 錯誤情況下也要隱藏載入畫面
+                document.body.classList.add('loaded');
+                const loadingScreen = document.getElementById('loadingScreen');
+                if (loadingScreen) {
                     loadingScreen.style.display = 'none';
-                }, 500);
+                }
             }
-        }, 1000);
+        }
+
+        // 🔧 性能優化：使用 requestIdleCallback
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(initializePage);
+        } else {
+            // 備用方案
+            setTimeout(initializePage, 100);
+        }
+
+        // 🔧 響應式處理
+        window.addEventListener('resize', debounce(() => {
+            // 重新調整粒子數量（如果需要）
+            const container = document.querySelector('.bg-particles');
+            const currentCount = container ? container.children.length : 0;
+            const targetCount = window.innerWidth < 768 ? 15 : 30;
+            
+            if (Math.abs(currentCount - targetCount) > 5) {
+                if (container) {
+                    container.innerHTML = '';
+                    createParticles();
+                }
+            }
+        }, 250));
+
+        // 防抖函數
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // 🔧 錯誤處理
+        window.addEventListener('error', (event) => {
+            console.error('頁面錯誤:', event.error);
+            // 確保遊戲仍然可以載入
+            document.body.classList.add('loaded');
+        });
+
+        // 🔧 CSS 載入失敗處理
+        window.addEventListener('load', () => {
+            if (!document.body.classList.contains('loaded')) {
+                console.warn('CSS 可能載入失敗，使用備用初始化');
+                initializePage();
+            }
+        });
     </script>
     
     <!-- 載入主遊戲模組 -->
