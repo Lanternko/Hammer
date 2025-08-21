@@ -74,10 +74,7 @@ class BattleSystem {
     const statsContainer = document.getElementById('realTimeStats');
     if (!statsContainer) return;
     
-    if (!statsContainer.hasAttribute('data-initialized')) {
-      statsContainer.setAttribute('data-initialized', 'true');
-    }
-    
+    // 計算玩家 DPS 和防禦能力
     const playerDPS = this.calculatePlayerDPS();
     const playerDefense = this.calculatePlayerDefense();
     const enemyDPS = this.calculateEnemyDPS();
@@ -85,29 +82,24 @@ class BattleSystem {
     const expectedBattleTime = this.calculateExpectedBattleTime(playerDPS, enemyDPS, playerDefense, enemyDefense);
     
     statsContainer.innerHTML = `
-      <div style="margin-bottom: 10px; padding: 6px; background: rgba(78, 205, 196, 0.15); border-radius: 6px; border-left: 2px solid #4ecdc4;">
-        <div style="color: #4ecdc4; font-weight: bold; font-size: 12px; margin-bottom: 4px;">👤 玩家</div>
-        <div style="font-size: 11px; line-height: 1.3;">
-          🗡️ DPS: <span style="color: #ffd700; font-weight: bold;">${playerDPS.toFixed(1)}</span><br>
-          🛡️ 減傷: <span style="color: #4ecdc4; font-weight: bold;">${playerDefense.reduction}%</span> | 固減: <span style="color: #4ecdc4; font-weight: bold;">${playerDefense.flatReduction}</span><br>
-          💥 暴擊: <span style="color: #ff6b6b; font-weight: bold;">${(this.player.critChance * 100).toFixed(0)}%</span> | 🔨 重錘: <span style="color: #ff6b6b; font-weight: bold;">${this.getHammerRate()}%</span>
-        </div>
+      <div style="margin-bottom: 12px; padding: 8px; background: rgba(78, 205, 196, 0.1); border-radius: 8px; border-left: 3px solid #4ecdc4;">
+        <div style="color: #4ecdc4; font-weight: bold; margin-bottom: 6px;">👤 玩家數據</div>
+        <div>🗡️ DPS: <span style="color: #ffd700; font-weight: bold;">${playerDPS.toFixed(1)}</span></div>
+        <div>🛡️ 護甲減傷: <span style="color: #4ecdc4; font-weight: bold;">${playerDefense.reduction}%</span> | 固減: <span style="color: #4ecdc4; font-weight: bold;">${playerDefense.flatReduction}</span></div>
+        <div>💥 暴擊率: <span style="color: #ff6b6b; font-weight: bold;">${(this.player.critChance * 100).toFixed(1)}%</span> | 🔨 重錘率: <span style="color: #ff6b6b; font-weight: bold;">${this.getHammerRate()}%</span></div>
       </div>
       
-      <div style="margin-bottom: 10px; padding: 6px; background: rgba(255, 107, 107, 0.15); border-radius: 6px; border-left: 2px solid #ff6b6b;">
-        <div style="color: #ff6b6b; font-weight: bold; font-size: 12px; margin-bottom: 4px;">👹 敵人</div>
-        <div style="font-size: 11px; line-height: 1.3;">
-          🗡️ DPS: <span style="color: #ffd700; font-weight: bold;">${enemyDPS.toFixed(1)}</span><br>
-          🛡️ 防禦: <span style="color: #ff6b6b; font-weight: bold;">${enemyDefense}</span> | ⚡ 攻速: <span style="color: #ffb347; font-weight: bold;">${this.enemy.attackSpeed.toFixed(1)}</span>
-        </div>
+      <div style="margin-bottom: 12px; padding: 8px; background: rgba(255, 107, 107, 0.1); border-radius: 8px; border-left: 3px solid #ff6b6b;">
+        <div style="color: #ff6b6b; font-weight: bold; margin-bottom: 6px;">👹 敵人數據</div>
+        <div>🗡️ DPS: <span style="color: #ffd700; font-weight: bold;">${enemyDPS.toFixed(1)}</span></div>
+        <div>🛡️ 防禦力: <span style="color: #ff6b6b; font-weight: bold;">${enemyDefense}</span></div>
+        <div>⚡ 攻速: <span style="color: #ffb347; font-weight: bold;">${this.enemy.attackSpeed.toFixed(2)}</span></div>
       </div>
       
-      <div style="padding: 6px; background: rgba(255, 215, 0, 0.15); border-radius: 6px; border-left: 2px solid #ffd700;">
-        <div style="color: #ffd700; font-weight: bold; font-size: 12px; margin-bottom: 4px;">⏱️ 戰況</div>
-        <div style="font-size: 11px; line-height: 1.3;">
-          預估: <span style="color: #ffd700; font-weight: bold;">${expectedBattleTime}s</span><br>
-          優勢: <span style="color: ${playerDPS > enemyDPS ? '#4ecdc4' : '#ff6b6b'}; font-weight: bold;">${playerDPS > enemyDPS ? '玩家' : '敵人'} (+${Math.abs(((playerDPS - enemyDPS) / Math.min(playerDPS, enemyDPS)) * 100).toFixed(0)}%)</span>
-        </div>
+      <div style="padding: 8px; background: rgba(255, 215, 0, 0.1); border-radius: 8px; border-left: 3px solid #ffd700;">
+        <div style="color: #ffd700; font-weight: bold; margin-bottom: 6px;">⏱️ 預期戰鬥</div>
+        <div>預估時長: <span style="color: #ffd700; font-weight: bold;">${expectedBattleTime}秒</span></div>
+        <div>優勢方: <span style="color: ${playerDPS > enemyDPS ? '#4ecdc4' : '#ff6b6b'}; font-weight: bold;">${playerDPS > enemyDPS ? '玩家 (+' + ((playerDPS/enemyDPS - 1) * 100).toFixed(1) + '%)' : '敵人 (+' + ((enemyDPS/playerDPS - 1) * 100).toFixed(1) + '%)'}</span></div>
       </div>
     `;
   }
@@ -192,152 +184,14 @@ class BattleSystem {
     `;
     
     speedControl.innerHTML = `
-      <div style="margin-bottom: 5px;">⚡ 戰鬥控制</div>
-      <div style="margin-bottom: 8px;">
-        <button id="pauseBtn" onclick="window.gameManager?.togglePause()" style="padding: 5px 12px; background: #FF6B6B; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px; margin-right: 5px;">⏸️ 暫停</button>
-      </div>
-      <div>
-        <button class="speed-btn" data-speed="1" onclick="window.gameManager?.setBattleSpeed(1)" style="margin-right: 5px; padding: 5px 8px; background: ${this.battleSpeed === 1 ? '#4CAF50' : '#666'}; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px;">1x</button>
-        <button class="speed-btn" data-speed="3" onclick="window.gameManager?.setBattleSpeed(3)" style="margin-right: 5px; padding: 5px 8px; background: ${this.battleSpeed === 3 ? '#FF9800' : '#666'}; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px;">3x</button>
-        <button class="speed-btn" data-speed="10" onclick="window.gameManager?.setBattleSpeed(10)" style="padding: 5px 8px; background: ${this.battleSpeed === 10 ? '#E91E63' : '#666'}; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px;">10x</button>
-      </div>
+      <div style="margin-bottom: 5px;">⚡ 戰鬥速度</div>
+      <button onclick="window.gameManager?.setBattleSpeed(1)" style="margin-right: 5px; padding: 5px 8px; background: ${this.battleSpeed === 1 ? '#4CAF50' : '#666'}; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px;">1x</button>
+      <button onclick="window.gameManager?.setBattleSpeed(3)" style="margin-right: 5px; padding: 5px 8px; background: ${this.battleSpeed === 3 ? '#FF9800' : '#666'}; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px;">3x</button>
+      <button onclick="window.gameManager?.setBattleSpeed(10)" style="padding: 5px 8px; background: ${this.battleSpeed === 10 ? '#E91E63' : '#666'}; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px;">10x</button>
     `;
     
     document.body.appendChild(speedControl);
     window.gameManager = this.gameManager;
-    window.gameManager.isPaused = false;
-  }
-
-  togglePause() {
-    if (!this.gameManager) return;
-    
-    this.gameManager.isPaused = !this.gameManager.isPaused;
-    const pauseBtn = document.getElementById('pauseBtn');
-    
-    if (this.gameManager.isPaused) {
-      pauseBtn.textContent = '▶️ 繼續';
-      pauseBtn.style.background = '#4CAF50';
-      this.showPauseOverlay();
-    } else {
-      pauseBtn.textContent = '⏸️ 暫停';
-      pauseBtn.style.background = '#FF6B6B';
-      this.hidePauseOverlay();
-    }
-  }
-
-  showPauseOverlay() {
-    const overlay = document.createElement('div');
-    overlay.id = 'pauseOverlay';
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(10px);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    `;
-
-    overlay.innerHTML = `
-      <div style="
-        background: linear-gradient(135deg, #2a2a40 0%, #1a1a2e 100%);
-        border: 2px solid #4ecdc4;
-        border-radius: 20px;
-        padding: 30px;
-        max-width: 900px;
-        width: 90%;
-        color: white;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-      ">
-        <h2 style="color: #4ecdc4; margin-bottom: 20px; text-align: center; font-size: 24px;">⏸️ 遊戲暫停</h2>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 20px;">
-          <div>
-            <h3 style="color: #ffd700; margin-bottom: 15px; font-size: 18px;">📊 當前戰鬥狀況</h3>
-            <div style="background: rgba(0, 0, 0, 0.3); padding: 15px; border-radius: 10px; font-size: 14px; line-height: 1.6;">
-              <div>👤 玩家血量: <span style="color: #4ecdc4; font-weight: bold;">${Math.round(this.player.hp)}/${this.player.maxHp}</span></div>
-              <div>👹 敵人血量: <span style="color: #ff6b6b; font-weight: bold;">${Math.round(this.enemy.hp)}/${this.enemy.maxHp}</span></div>
-              <div>🗡️ 玩家 DPS: <span style="color: #ffd700; font-weight: bold;">${this.calculatePlayerDPS().toFixed(1)}</span></div>
-              <div>🗡️ 敵人 DPS: <span style="color: #ffd700; font-weight: bold;">${this.calculateEnemyDPS().toFixed(1)}</span></div>
-              <div>⏱️ 戰鬥時長: <span style="color: #ccc; font-weight: bold;">${((Date.now() - this.battleStats.startTime) / 1000).toFixed(1)}秒</span></div>
-            </div>
-          </div>
-          
-          <div>
-            <h3 style="color: #ffd700; margin-bottom: 15px; font-size: 18px;">🔨 玩家屬性</h3>
-            <div style="background: rgba(0, 0, 0, 0.3); padding: 15px; border-radius: 10px; font-size: 14px; line-height: 1.6;">
-              <div>⚔️ 攻擊力: <span style="color: #ffd700; font-weight: bold;">${this.player.getEffectiveAttack()}</span></div>
-              <div>⚡ 攻擊速度: <span style="color: #ffd700; font-weight: bold;">${this.player.getEffectiveAttackSpeed().toFixed(2)}</span></div>
-              <div>🛡️ 護甲: <span style="color: #4ecdc4; font-weight: bold;">${this.player.getEffectiveArmor()}</span> (${(this.player.getEffectiveArmor() / (this.player.getEffectiveArmor() + 100) * 100).toFixed(1)}% 減傷)</div>
-              <div>🔰 固定減傷: <span style="color: #4ecdc4; font-weight: bold;">${this.player.flatReduction}</span></div>
-              <div>💥 暴擊率: <span style="color: #ff6b6b; font-weight: bold;">${(this.player.critChance * 100).toFixed(1)}%</span></div>
-              <div>🔨 重錘率: <span style="color: #ff6b6b; font-weight: bold;">${this.getHammerRate()}%</span></div>
-            </div>
-          </div>
-        </div>
-        
-        <div style="margin-bottom: 20px;">
-          <h3 style="color: #ffd700; margin-bottom: 15px; font-size: 18px;">🎖️ 當前徽章效果</h3>
-          <div style="background: rgba(0, 0, 0, 0.3); padding: 15px; border-radius: 10px; font-size: 13px; line-height: 1.5;">
-            ${this.getPlayerBuffsForPause()}
-          </div>
-        </div>
-        
-        <div style="text-align: center;">
-          <button onclick="window.gameManager?.battleSystem?.togglePause()" style="
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            transition: background 0.3s ease;
-          " 
-          onmouseover="this.style.background='#45a049'" 
-          onmouseout="this.style.background='#4CAF50'">▶️ 繼續戰鬥</button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(overlay);
-  }
-
-  getPlayerBuffsForPause() {
-    const buffs = [];
-    
-    if (this.player.hammerEffects.mastery) buffs.push('🔨 重錘精通: 25%機率150%傷害+眩暈');
-    if (this.player.hammerEffects.storm) buffs.push('🌪️ 重錘風暴: 重錘觸發時下次必暴擊');
-    if (this.player.hammerEffects.shield) buffs.push('🛡️ 重錘護盾: 重錘觸發時+10護甲5秒');
-    if (this.player.hammerEffects.heal) buffs.push('💚 重錘恢復: 重錘觸發時+15血量');
-    if (this.player.hammerEffects.fury) buffs.push('🔥 重錘狂怒: 重錘觸發時+50%攻速3秒');
-    if (this.player.hammerEffects.weight) buffs.push('⚡ 重錘加重: 觸發率35%，傷害170%');
-    if (this.player.hammerEffects.duration) buffs.push('⏱️ 重錘延續: 眩暈時間2秒');
-    
-    if (this.player.hasReflectArmor) buffs.push('⚡ 反甲護盾: 每受傷5次反彈5%敵人血量');
-    
-    const statusInfo = this.player.getStatusInfo();
-    buffs.push(...statusInfo);
-    
-    this.player.badges.forEach(badge => {
-      if (!badge.key || !badge.key.includes('hammer')) {
-        buffs.push(`${badge.icon} ${badge.name}`);
-      }
-    });
-
-    return buffs.length > 0 
-      ? buffs.map(buff => `<div style="margin-bottom: 3px;">• ${buff}</div>`).join('')
-      : '<div style="opacity: 0.6;">暫無特殊效果</div>';
-  }
-
-  hidePauseOverlay() {
-    const overlay = document.getElementById('pauseOverlay');
-    if (overlay) overlay.remove();
   }
 
   stop() {
@@ -367,7 +221,7 @@ class BattleSystem {
   }
 
   tick() {
-    if (!this.isActive || this.gameManager.isPaused) return;
+    if (!this.isActive) return;
 
     this.player.updateTempEffects(this.deltaTime);
 
@@ -424,12 +278,13 @@ class BattleSystem {
     
     this.showDamageNumber(reducedDmg, isCrit || isHammerProc, false);
     
+    // 重錘精通的眩暈效果
     if (isHammerProc && this.player.hammerEffects.mastery) {
-      const stunDuration = this.player.getHammerStunDuration();
+      const stunDuration = this.player.hammerEffects.duration ? 2.0 : 1.0;
       this.enemy.isStunned = true;
       this.enemy.stunDuration = stunDuration;
       this.enemy.currentFrame = 0;
-      console.log(`😵 敵人被重錘眩暈 ${stunDuration.toFixed(1)} 秒！`);
+      console.log(`😵 敵人被重錘眩暈 ${stunDuration} 秒！`);
     }
     
     if (this.enemy.hp <= 0) {
@@ -463,35 +318,35 @@ class BattleSystem {
   }
 
   showFloatingDamage(damage, isPlayerTaking) {
-    const healthContainer = document.querySelector(isPlayerTaking ? '.hero .health-container' : '.enemy .health-container');
-    if (!healthContainer) return;
+    const targetCard = document.querySelector(isPlayerTaking ? '.hero .character-card' : '.enemy .character-card');
+    if (!targetCard) return;
 
     const floatingDamage = document.createElement('div');
     floatingDamage.className = 'floating-damage';
     
-    floatingDamage.textContent = `-${damage.toFixed(0)}`;
+    floatingDamage.textContent = `-${damage.toFixed(1)}`;
     floatingDamage.style.cssText = `
       position: absolute;
-      right: -30px;
-      top: 50%;
-      transform: translateY(-50%);
+      right: -20px;
+      top: 40%;
       font-size: 16px;
       font-weight: bold;
       color: ${isPlayerTaking ? '#ff6b6b' : '#4ecdc4'};
       text-shadow: 0 0 8px ${isPlayerTaking ? '#ff6b6b' : '#4ecdc4'}80;
-      animation: floatRight 2s ease-out forwards;
+      animation: floatRight 1.5s ease-out forwards;
       pointer-events: none;
       z-index: 1000;
     `;
     
-    healthContainer.style.position = 'relative';
-    healthContainer.appendChild(floatingDamage);
+    targetCard.style.position = 'relative';
+    targetCard.appendChild(floatingDamage);
 
+    // 1.5秒後移除
     setTimeout(() => {
       if (floatingDamage.parentNode) {
         floatingDamage.remove();
       }
-    }, 2000);
+    }, 1500);
   }
 
   checkReflectArmor() {
@@ -635,11 +490,13 @@ class BattleSystem {
     this.gameManager.updatePlayerStats();
   }
 
-  // 🔧 修復: 節流版本的速度控制按鈕更新
-  updateSpeedControlButtonsThrottled() {
-    if (!this.lastSpeedUpdate || Date.now() - this.lastSpeedUpdate > 500) {
-      this.updateSpeedControlButtons();
-      this.lastSpeedUpdate = Date.now();
+  updateSpeedControlButtons() {
+    const speedControl = document.getElementById('speedControl');
+    if (speedControl) {
+      const buttons = speedControl.querySelectorAll('button');
+      buttons[0].style.background = this.battleSpeed === 1 ? '#4CAF50' : '#666';
+      buttons[1].style.background = this.battleSpeed === 3 ? '#FF9800' : '#666';
+      buttons[2].style.background = this.battleSpeed === 10 ? '#E91E63' : '#666';
     }
   }
 

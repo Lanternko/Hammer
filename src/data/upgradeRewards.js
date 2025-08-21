@@ -1,4 +1,4 @@
-// src/data/upgradeRewards.js - 修復版本
+// src/data/upgradeRewards.js - 修復升級獎勵系統
 export const UpgradeRewards = {
   // 基礎升級選項 - 主要給百分比增強
   baseUpgrades: [
@@ -26,10 +26,10 @@ export const UpgradeRewards = {
       id: 'armor_boost',
       name: '護甲強化',
       icon: '🛡️',
-      description: '護甲值 +10 (固定值)',
+      description: '護甲值 +15% (百分比)',
       type: 'armor',
-      value: 10,
-      isPercentage: false,
+      value: 0.15,
+      isPercentage: true,
       rarity: 'common'
     },
     {
@@ -120,9 +120,9 @@ export const UpgradeRewards = {
       id: 'fortress',
       name: '要塞體質',
       icon: '🏰',
-      description: '護甲+15，固減+5',
+      description: '護甲+20%，固減+5',
       type: 'fortress',
-      value: { armor: 15, flatReduction: 5 },
+      value: { armorPercent: 0.20, flatReduction: 5 },
       isPercentage: false,
       rarity: 'legendary'
     }
@@ -196,130 +196,60 @@ export function generateUpgradeOptions(currentLevel) {
 
 // 🔧 修復：安全的升級應用函數
 export function applyUpgradeToPlayer(player, upgrade) {
-  try {
-    // 🔧 詳細的參數驗證
-    if (!player) {
-      console.error('❌ applyUpgradeToPlayer: player 參數為空');
-      return;
-    }
-    
-    if (!upgrade) {
-      console.error('❌ applyUpgradeToPlayer: upgrade 參數為空');
-      return;
-    }
-    
-    if (!upgrade.type) {
-      console.error('❌ applyUpgradeToPlayer: upgrade.type 缺失', upgrade);
-      return;
-    }
-    
-    if (upgrade.value === undefined || upgrade.value === null) {
-      console.error('❌ applyUpgradeToPlayer: upgrade.value 缺失', upgrade);
-      return;
-    }
-    
-    console.log(`🔧 應用升級: ${upgrade.name} (${upgrade.type}, ${upgrade.value})`);
-    
-    // 🔧 安全的類型處理
-    switch(upgrade.type) {
-      case 'attack':
-        if (upgrade.isPercentage) {
-          if (typeof player.applyPercentageBonus === 'function') {
-            player.applyPercentageBonus('attack', upgrade.value);
-          } else {
-            console.warn('⚠️ player.applyPercentageBonus 方法不存在');
-          }
-        } else {
-          if (typeof player.applyFlatBonus === 'function') {
-            player.applyFlatBonus('attack', upgrade.value);
-          } else {
-            console.warn('⚠️ player.applyFlatBonus 方法不存在');
-          }
-        }
-        break;
-        
-      case 'maxHp':
-      case 'hp':
-        if (upgrade.isPercentage) {
-          if (typeof player.applyPercentageBonus === 'function') {
-            player.applyPercentageBonus('hp', upgrade.value);
-          }
-        } else {
-          if (typeof player.applyFlatBonus === 'function') {
-            player.applyFlatBonus('hp', upgrade.value);
-          }
-        }
-        break;
-        
-      case 'armor':
-        if (upgrade.isPercentage) {
-          if (typeof player.applyPercentageBonus === 'function') {
-            player.applyPercentageBonus('armor', upgrade.value);
-          }
-        } else {
-          if (typeof player.applyFlatBonus === 'function') {
-            player.applyFlatBonus('armor', upgrade.value);
-          }
-        }
-        break;
-        
-      case 'attackSpeed':
-        if (upgrade.isPercentage) {
-          if (typeof player.applyPercentageBonus === 'function') {
-            player.applyPercentageBonus('attackSpeed', upgrade.value);
-          }
-        } else {
-          if (typeof player.applyFlatBonus === 'function') {
-            player.applyFlatBonus('attackSpeed', upgrade.value);
-          }
-        }
-        break;
-        
-      case 'critChance':
-        if (typeof player.applyFlatBonus === 'function') {
-          player.applyFlatBonus('critChance', upgrade.value);
-        }
-        break;
-        
-      case 'flatReduction':
-        if (typeof player.applyFlatBonus === 'function') {
-          player.applyFlatBonus('flatReduction', upgrade.value);
-        }
-        break;
-        
-      case 'lifesteal':
-        player.lifesteal = (player.lifesteal || 0) + upgrade.value;
-        break;
-        
-      case 'berserker':
-        if (!player.specialEffects) player.specialEffects = {};
-        player.specialEffects.berserker = upgrade.value;
-        break;
-        
-      case 'fortress':
-        if (upgrade.value && typeof upgrade.value === 'object') {
-          if (typeof player.applyFlatBonus === 'function') {
-            if (upgrade.value.armor) {
-              player.applyFlatBonus('armor', upgrade.value.armor);
-            }
-            if (upgrade.value.flatReduction) {
-              player.applyFlatBonus('flatReduction', upgrade.value.flatReduction);
-            }
-          }
-        }
-        break;
-        
-      default:
-        console.warn(`⚠️ 未知的升級類型: ${upgrade.type}`);
-        break;
-    }
-    
-    console.log(`✅ 升級應用成功: ${upgrade.name}`);
-    
-  } catch (error) {
-    console.error('❌ 應用升級時發生錯誤:', error);
-    console.error('升級信息:', upgrade);
-    console.error('玩家信息:', player);
+  switch(upgrade.type) {
+    case 'attack':
+      if (upgrade.isPercentage) {
+        player.applyPercentageBonus('attack', upgrade.value);
+      } else {
+        player.applyFlatBonus('attack', upgrade.value);
+      }
+      break;
+      
+    case 'maxHp':
+      if (upgrade.isPercentage) {
+        player.applyPercentageBonus('hp', upgrade.value);
+      } else {
+        player.applyFlatBonus('hp', upgrade.value);
+      }
+      break;
+      
+    case 'armor':
+      if (upgrade.isPercentage) {
+        player.applyPercentageBonus('armor', upgrade.value);
+      } else {
+        player.applyFlatBonus('armor', upgrade.value);
+      }
+      break;
+      
+    case 'attackSpeed':
+      if (upgrade.isPercentage) {
+        player.applyPercentageBonus('attackSpeed', upgrade.value);
+      } else {
+        player.applyFlatBonus('attackSpeed', upgrade.value);
+      }
+      break;
+      
+    case 'critChance':
+      player.applyFlatBonus('critChance', upgrade.value);
+      break;
+      
+    case 'flatReduction':
+      player.applyFlatBonus('flatReduction', upgrade.value);
+      break;
+      
+    case 'lifesteal':
+      player.lifesteal = (player.lifesteal || 0) + upgrade.value;
+      break;
+      
+    case 'berserker':
+      player.specialEffects = player.specialEffects || {};
+      player.specialEffects.berserker = upgrade.value;
+      break;
+      
+    case 'fortress':
+      player.applyPercentageBonus('armor', upgrade.value.armorPercent);
+      player.applyFlatBonus('flatReduction', upgrade.value.flatReduction);
+      break;
   }
 }
 

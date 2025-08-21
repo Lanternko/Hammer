@@ -24,7 +24,7 @@ export const EnemyData = {
     name: '坦克守衛',
     emoji: '🛡️',
     baseHp: 120,        // 大幅提升血量
-    baseAttack: 14,     // 提升攻擊力
+    baseAttack: 16,     // 提升攻擊力
     attackSpeed: 0.8,
     defense: 15,        // 大幅提升防禦
     description: '血厚防高的守衛，極其耐打且有一定威脅'
