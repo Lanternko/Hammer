@@ -1,10 +1,11 @@
-// src/game/GameManager.js - 修復版本
+// src/game/GameManager.js - 配置化版本
 import Player from './Player.js';
 import Enemy from './Enemy.js';
 import BattleSystem from '../systems/BattleSystem.js';
 import EventSystem from '../systems/EventSystem.js';
 import { selectEnemyType } from '../data/Enemies.js';
 import { generateUpgradeOptions, applyUpgradeToPlayer } from '../data/upgradeRewards.js';
+import { GAME_CONFIG, GameConfigUtils } from '../config/GameConfig.js';
 
 class GameManager {
   constructor() {
@@ -20,7 +21,7 @@ class GameManager {
     this.eventSystem = new EventSystem(this);
     
     // 保存戰鬥速度設定
-    this.battleSpeed = 1; // 預設1倍速
+    this.battleSpeed = GAME_CONFIG.BATTLE_SPEEDS.NORMAL;
     
     // 創建增強的UI管理器
     this.enhancedUI = new EnhancedUIManager();
@@ -36,14 +37,14 @@ class GameManager {
   }
 
   nextLevel() {
-    if (this.currentLevel > 20) {
+    if (this.currentLevel > GAME_CONFIG.TOTAL_LEVELS) {
       return this.endGame();
     }
 
     console.log(`🔄 進入關卡 ${this.currentLevel}`);
 
-    // 檢查是否是事件關卡 (第3、8、13、18關)
-    if ([3, 8, 13, 18].includes(this.currentLevel)) {
+    // 檢查是否是事件關卡
+    if (GameConfigUtils.isEventLevel(this.currentLevel)) {
       this.triggerEvent();
       return;
     }
@@ -65,12 +66,19 @@ class GameManager {
     
     // 創建新的戰鬥系統並繼承速度設定
     this.battleSystem = new BattleSystem(this.player, this.enemy, this);
-    this.battleSystem.setBattleSpeed(this.battleSpeed); // 繼承之前的速度設定
+    this.battleSystem.setBattleSpeed(this.battleSpeed);
     this.battleSystem.start();
   }
 
   // 設定戰鬥速度的方法，供BattleSystem回調
   setBattleSpeed(speed) {
+    // 驗證速度是否在允許範圍內
+    const validSpeeds = Object.values(GAME_CONFIG.BATTLE_SPEEDS);
+    if (!validSpeeds.includes(speed)) {
+      console.warn(`⚠️ 無效的戰鬥速度: ${speed}, 使用預設值`);
+      speed = GAME_CONFIG.BATTLE_SPEEDS.NORMAL;
+    }
+    
     this.battleSpeed = speed;
     if (this.battleSystem) {
       this.battleSystem.setBattleSpeed(speed);
@@ -81,9 +89,9 @@ class GameManager {
   endBattle(won, battleStats = null) {
     console.log(`⚔️ 戰鬥結束 - ${won ? '✅ 勝利' : '❌ 失敗'}`);
     
-    // 縮短戰鬥結果顯示時間到3秒
+    // 使用配置的戰鬥結果顯示時間
     if (battleStats && this.enhancedUI) {
-      this.enhancedUI.showBattleResults(battleStats, this.player, 3000);
+      this.enhancedUI.showBattleResults(battleStats, this.player, GAME_CONFIG.BATTLE_RESULT_DISPLAY_TIME);
     }
     
     if (!won) {
@@ -91,14 +99,8 @@ class GameManager {
       return this.endGame();
     }
 
-    // 獲得金幣獎勵
-    let goldReward = 1;
-    if (this.currentLevel === 20) {
-      goldReward = 5;
-    } else if (this.currentLevel % 5 === 0) {
-      goldReward = 2;
-    }
-    
+    // 獲得金幣獎勵 - 使用配置系統
+    const goldReward = GameConfigUtils.getGoldReward(this.currentLevel);
     this.gold += goldReward;
     console.log(`💰 關卡 ${this.currentLevel} 完成！獲得金幣: ${goldReward}，總金幣: ${this.gold}`);
 
@@ -106,10 +108,10 @@ class GameManager {
     this.player.hp = this.player.maxHp;
     console.log('💚 血量已回滿');
 
-    // 縮短延遲到1秒
+    // 使用配置的延遲時間
     setTimeout(() => {
       this.showLevelUpChoice(goldReward);
-    }, 1000);
+    }, GAME_CONFIG.BATTLE_RESULT_DISPLAY_TIME / 3); // 1秒延遲
   }
 
   showLevelUpChoice(goldReward) {
@@ -130,13 +132,13 @@ class GameManager {
       display: flex;
       justify-content: center;
       align-items: center;
-      z-index: 1000;
+      z-index: ${GAME_CONFIG.UI_CONFIG.Z_INDEX.OVERLAYS};
     `;
 
     upgradeDiv.innerHTML = `
       <div style="
         background: linear-gradient(135deg, #2a2a40 0%, #1a1a2e 100%);
-        border: 2px solid #4ecdc4;
+        border: 2px solid ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY};
         border-radius: 20px;
         padding: 30px;
         max-width: 800px;
@@ -144,10 +146,10 @@ class GameManager {
         text-align: center;
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
       ">
-        <h2 style="color: #4ecdc4; margin-bottom: 10px; font-size: 24px;">
+        <h2 style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY}; margin-bottom: 10px; font-size: 24px;">
           🎉 關卡 ${this.currentLevel} 完成！
         </h2>
-        <p style="color: #ffd700; margin-bottom: 20px; font-size: 18px;">
+        <p style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; margin-bottom: 20px; font-size: 18px;">
           💰 +${goldReward} 金幣 | 💚 血量回滿
         </p>
         <h3 style="color: #fff; margin-bottom: 20px;">選擇一個升級獎勵（三選一）：</h3>
@@ -158,7 +160,7 @@ class GameManager {
               max-width: 250px;
               padding: 20px;
               background: rgba(78, 205, 196, 0.1);
-              border: 2px solid #4ecdc4;
+              border: 2px solid ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY};
               border-radius: 12px;
               cursor: pointer;
               transition: all 0.3s ease;
@@ -167,13 +169,13 @@ class GameManager {
               <div style="font-size: 30px; margin-bottom: 15px;">
                 ${option.icon}
               </div>
-              <div style="color: #4ecdc4; font-weight: bold; font-size: 18px; margin-bottom: 5px;">
+              <div style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY}; font-weight: bold; font-size: 18px; margin-bottom: 5px;">
                 ${option.name}
               </div>
               <div style="color: #ccc; font-size: 14px; line-height: 1.4; margin-bottom: 10px;">
                 ${option.description}
               </div>
-              <div style="color: #ffd700; font-size: 12px; font-weight: bold;">
+              <div style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; font-size: 12px; font-weight: bold;">
                 詳細效果：${this.getUpgradeEffectDescription(option)}
               </div>
               <div style="
@@ -208,12 +210,12 @@ class GameManager {
         setTimeout(() => {
           this.currentLevel++;
           this.nextLevel();
-        }, 500); // 縮短延遲
+        }, 500);
       });
 
       option.addEventListener('mouseenter', () => {
         option.style.transform = 'scale(1.05)';
-        option.style.boxShadow = '0 8px 25px rgba(78, 205, 196, 0.4)';
+        option.style.boxShadow = `0 8px 25px ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY}40`;
       });
 
       option.addEventListener('mouseleave', () => {
@@ -223,7 +225,6 @@ class GameManager {
     });
   }
 
-  // 修復：獲取升級效果詳細描述
   getUpgradeEffectDescription(upgrade) {
     const currentValue = this.getCurrentPlayerValue(upgrade.type);
     let newValue;
@@ -233,12 +234,10 @@ class GameManager {
       return `${Math.floor(currentValue)} → ${newValue} (+${(upgrade.value * 100).toFixed(0)}%)`;
     } else {
       if (upgrade.type === 'critChance') {
-        // 暴擊率特殊處理：顯示百分比
         const currentPercent = (currentValue * 100).toFixed(0);
         const newPercent = ((currentValue + upgrade.value) * 100).toFixed(0);
         return `${currentPercent}% → ${newPercent}% (+${(upgrade.value * 100).toFixed(0)}%)`;
       } else if (upgrade.type === 'attackSpeed') {
-        // 攻速保留小數點
         newValue = (currentValue + upgrade.value).toFixed(2);
         return `${currentValue.toFixed(2)} → ${newValue} (+${upgrade.value.toFixed(2)})`;
       } else {
@@ -264,10 +263,10 @@ class GameManager {
   getRarityColor(rarity) {
     switch(rarity) {
       case 'common': return '#A0A0A0';
-      case 'uncommon': return '#4CAF50';
+      case 'uncommon': return GAME_CONFIG.UI_CONFIG.COLORS.SUCCESS;
       case 'rare': return '#2196F3';
       case 'epic': return '#9C27B0';
-      case 'legendary': return '#FF9800';
+      case 'legendary': return GAME_CONFIG.UI_CONFIG.COLORS.WARNING;
       default: return '#FFFFFF';
     }
   }
@@ -284,23 +283,24 @@ class GameManager {
   }
 
   giveStartingBadge() {
-    // 開局給重錘徽章
+    // 開局給重錘徽章 - 移除眩暈描述
     const hammerBadge = {
       key: 'hammerMastery',
       name: '重錘精通',
-      description: '每次攻擊有25%機率造成150%傷害並眩暈敵人1秒',
+      // 🔧 更新描述：移除眩暈效果
+      description: `每次攻擊有${(GAME_CONFIG.HAMMER_CONFIG.BASE_PROC_CHANCE * 100).toFixed(0)}%機率造成${(GAME_CONFIG.HAMMER_CONFIG.BASE_DAMAGE_MULTIPLIER * 100).toFixed(0)}%傷害`,
       icon: '🔨',
       effect: { hammerMastery: true },
       rarity: 'legendary'
     };
     
     this.player.equipBadge(hammerBadge);
-    console.log('🔨 獲得開局徽章: 重錘精通');
+    console.log('🔨 獲得開局徽章: 重錘精通（無眩暈版本）');
   }
 
   checkForBadgeReward() {
-    // 每5關給一個徽章 (第5, 10, 15, 20關)
-    if (this.currentLevel % 5 === 0) {
+    // 檢查是否為Boss關卡
+    if (GameConfigUtils.isBossLevel(this.currentLevel)) {
       this.giveMilestoneBadge();
     }
   }
@@ -318,7 +318,7 @@ class GameManager {
       {
         key: 'hammerShield',
         name: '重錘護盾',
-        description: '重錘精通觸發時，獲得10點護甲持續5秒',
+        description: `重錘精通觸發時，獲得${GAME_CONFIG.HAMMER_CONFIG.EFFECTS.SHIELD_ARMOR}點護甲持續${GAME_CONFIG.HAMMER_CONFIG.EFFECTS.SHIELD_DURATION}秒`,
         icon: '🛡️',
         effect: { hammerShield: true },
         rarity: 'epic'
@@ -326,7 +326,7 @@ class GameManager {
       {
         key: 'hammerHeal',
         name: '重錘恢復',
-        description: '重錘精通觸發時，回復15點生命值',
+        description: `重錘精通觸發時，回復${GAME_CONFIG.HAMMER_CONFIG.EFFECTS.HEAL_AMOUNT}點生命值`,
         icon: '💚',
         effect: { hammerHeal: true },
         rarity: 'epic'
@@ -334,7 +334,7 @@ class GameManager {
       {
         key: 'hammerFury',
         name: '重錘狂怒',
-        description: '重錘精通觸發時，攻擊速度+50%持續3秒',
+        description: `重錘精通觸發時，攻擊速度+${((GAME_CONFIG.HAMMER_CONFIG.EFFECTS.FURY_SPEED_BOOST - 1) * 100).toFixed(0)}%持續${GAME_CONFIG.HAMMER_CONFIG.EFFECTS.FURY_DURATION}秒`,
         icon: '🔥',
         effect: { hammerFury: true },
         rarity: 'legendary'
@@ -357,12 +357,12 @@ class GameManager {
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: linear-gradient(135deg, #FFD700, #FFA500);
+      background: linear-gradient(135deg, ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}, ${GAME_CONFIG.UI_CONFIG.COLORS.WARNING});
       color: white;
       padding: 30px;
       border-radius: 20px;
       text-align: center;
-      z-index: 2000;
+      z-index: ${GAME_CONFIG.UI_CONFIG.Z_INDEX.BADGES};
       box-shadow: 0 20px 40px rgba(255, 215, 0, 0.4);
       animation: badgePulse 0.6s ease-out;
     `;
@@ -422,13 +422,16 @@ class GameManager {
   }
 
   endGame() {
-    const diamonds = Math.floor(this.currentLevel / 5) + (this.currentLevel >= 20 ? 5 : 0);
+    // 使用配置的鑽石計算
+    const diamonds = Math.floor(this.currentLevel / 5) * GAME_CONFIG.DIAMOND_REWARDS.PER_5_LEVELS + 
+      (this.currentLevel >= GAME_CONFIG.TOTAL_LEVELS ? GAME_CONFIG.DIAMOND_REWARDS.COMPLETION_BONUS : 0);
+    
     console.log(`🎯 遊戲結束！到達關卡: ${this.currentLevel}, 獲得鑽石: ${diamonds}`);
     this.diamonds += diamonds;
     
     this.showGameOverScreen();
     
-    // 5秒後重置遊戲
+    // 8秒後重置遊戲
     setTimeout(() => {
       this.resetGame();
     }, 8000);
@@ -446,15 +449,15 @@ class GameManager {
       display: flex;
       justify-content: center;
       align-items: center;
-      z-index: 2000;
+      z-index: ${GAME_CONFIG.UI_CONFIG.Z_INDEX.GAME_OVER};
     `;
 
-    const isVictory = this.currentLevel > 20;
+    const isVictory = this.currentLevel > GAME_CONFIG.TOTAL_LEVELS;
     const badgeCount = this.player.badges.length;
     
     gameOverDiv.innerHTML = `
       <div style="
-        background: linear-gradient(135deg, ${isVictory ? '#2ECC71, #27AE60' : '#E74C3C, #C0392B'});
+        background: linear-gradient(135deg, ${isVictory ? GAME_CONFIG.UI_CONFIG.COLORS.SUCCESS + ', #27AE60' : GAME_CONFIG.UI_CONFIG.COLORS.ERROR + ', #C0392B'});
         padding: 40px;
         border-radius: 20px;
         text-align: center;
@@ -471,7 +474,7 @@ class GameManager {
           ${isVictory ? '你用重錘征服了所有敵人！' : `你在第 ${this.currentLevel} 關倒下了`}
         </p>
         <div style="font-size: 16px; opacity: 0.9; margin-bottom: 20px;">
-          <p>💎 鑽石: ${Math.floor(this.currentLevel / 5)}</p>
+          <p>💎 鑽石: ${Math.floor(this.currentLevel / 5) * GAME_CONFIG.DIAMOND_REWARDS.PER_5_LEVELS}</p>
           <p>🎖️ 徽章: ${badgeCount}</p>
           <p>💰 金幣: ${this.gold}</p>
         </div>
@@ -514,7 +517,7 @@ class GameManager {
     // 更新關卡顯示
     const roundCounter = document.querySelector('.round-counter');
     if (roundCounter) {
-      roundCounter.textContent = `Round ${this.currentLevel} / 20`;
+      roundCounter.textContent = `Round ${this.currentLevel} / ${GAME_CONFIG.TOTAL_LEVELS}`;
     }
 
     // 更新玩家資訊
@@ -581,17 +584,16 @@ class GameManager {
   }
 }
 
-// 修復增強的UI管理器類 - 護甲提示更清楚
+// 增強的UI管理器類保持不變
 class EnhancedUIManager {
   constructor() {
     this.createBuffDisplayArea();
     setTimeout(() => {
-      this.createHoverTooltips(); // 延遲創建，確保DOM載入
+      this.createHoverTooltips();
     }, 2000);
   }
 
   createBuffDisplayArea() {
-    // 在現有的統計面板旁邊創建Buff顯示區域
     const buffPanel = document.createElement('div');
     buffPanel.id = 'buffPanel';
     buffPanel.style.cssText = `
@@ -608,11 +610,11 @@ class EnhancedUIManager {
       max-height: 300px;
       overflow-y: auto;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-      z-index: 100;
+      z-index: ${GAME_CONFIG.UI_CONFIG.Z_INDEX.PANELS};
     `;
 
     buffPanel.innerHTML = `
-      <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #4ecdc4; border-bottom: 1px solid rgba(78, 205, 196, 0.3); padding-bottom: 5px;">
+      <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY}; border-bottom: 1px solid rgba(78, 205, 196, 0.3); padding-bottom: 5px;">
         🔥 當前效果
       </div>
       <div id="buffList"></div>
@@ -621,7 +623,6 @@ class EnhancedUIManager {
     document.body.appendChild(buffPanel);
   }
 
-  // 修復：創建更清楚的護甲懸浮提示
   createHoverTooltips() {
     const statsPanel = document.querySelector('.stats-panel');
     if (statsPanel) {
@@ -638,7 +639,7 @@ class EnhancedUIManager {
             font-size: 14px;
             opacity: 0.9;
             position: relative;
-            color: #4ecdc4;
+            color: ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY};
           `;
           
           // 創建更清楚的懸浮提示
@@ -656,7 +657,7 @@ class EnhancedUIManager {
             line-height: 1.5;
             width: 250px;
             z-index: 1000;
-            border: 2px solid #4ecdc4;
+            border: 2px solid ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY};
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.8);
             display: none;
             backdrop-filter: blur(10px);
@@ -664,20 +665,20 @@ class EnhancedUIManager {
           
           tooltip.innerHTML = `
             <div style="text-align: center; margin-bottom: 10px;">
-              <strong style="color: #4ecdc4; font-size: 14px;">🛡️ 護甲減傷機制</strong>
+              <strong style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY}; font-size: 14px;">🛡️ 護甲減傷機制</strong>
             </div>
             <div style="margin-bottom: 8px;">
-              <strong style="color: #ffd700;">計算公式：</strong><br>
+              <strong style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD};">計算公式：</strong><br>
               減傷% = 護甲 ÷ (護甲 + 100)
             </div>
             <div style="margin-bottom: 8px;">
-              <strong style="color: #ffd700;">舉例說明：</strong><br>
+              <strong style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD};">舉例說明：</strong><br>
               • 50護甲 = 33.3%減傷<br>
               • 100護甲 = 50%減傷<br>
               • 200護甲 = 66.7%減傷
             </div>
             <div style="background: rgba(78, 205, 196, 0.2); padding: 8px; border-radius: 6px; margin-top: 10px;">
-              <strong style="color: #4ecdc4;">傷害計算順序：</strong><br>
+              <strong style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY};">傷害計算順序：</strong><br>
               原始傷害 → 護甲減傷 → 固定減傷 → 最終傷害
             </div>
           `;
@@ -705,16 +706,16 @@ class EnhancedUIManager {
     const buffs = [];
     
     // 重錘效果
-    if (player.hammerEffects.mastery) buffs.push('🔨 重錘精通 (25%觸發，150%傷害，眩暈1秒)');
+    if (player.hammerEffects.mastery) buffs.push(`🔨 重錘精通 (${(GAME_CONFIG.HAMMER_CONFIG.BASE_PROC_CHANCE * 100).toFixed(0)}%觸發，${(GAME_CONFIG.HAMMER_CONFIG.BASE_DAMAGE_MULTIPLIER * 100).toFixed(0)}%傷害，眩暈${GAME_CONFIG.HAMMER_CONFIG.BASE_STUN_DURATION}秒)`);
     if (player.hammerEffects.storm) buffs.push('🌪️ 重錘風暴 (重錘觸發時下次必暴擊)');
-    if (player.hammerEffects.shield) buffs.push('🛡️ 重錘護盾 (重錘觸發時+10護甲5秒)');
-    if (player.hammerEffects.heal) buffs.push('💚 重錘恢復 (重錘觸發時+15血量)');
-    if (player.hammerEffects.fury) buffs.push('🔥 重錘狂怒 (重錘觸發時+50%攻速3秒)');
-    if (player.hammerEffects.weight) buffs.push('⚡ 重錘加重 (觸發率35%，傷害170%)');
-    if (player.hammerEffects.duration) buffs.push('⏱️ 重錘延續 (眩暈時間2秒)');
+    if (player.hammerEffects.shield) buffs.push(`🛡️ 重錘護盾 (重錘觸發時+${GAME_CONFIG.HAMMER_CONFIG.EFFECTS.SHIELD_ARMOR}護甲${GAME_CONFIG.HAMMER_CONFIG.EFFECTS.SHIELD_DURATION}秒)`);
+    if (player.hammerEffects.heal) buffs.push(`💚 重錘恢復 (重錘觸發時+${GAME_CONFIG.HAMMER_CONFIG.EFFECTS.HEAL_AMOUNT}血量)`);
+    if (player.hammerEffects.fury) buffs.push(`🔥 重錘狂怒 (重錘觸發時+${((GAME_CONFIG.HAMMER_CONFIG.EFFECTS.FURY_SPEED_BOOST - 1) * 100).toFixed(0)}%攻速${GAME_CONFIG.HAMMER_CONFIG.EFFECTS.FURY_DURATION}秒)`);
+    if (player.hammerEffects.weight) buffs.push(`⚡ 重錘加重 (觸發率${(GAME_CONFIG.HAMMER_CONFIG.ENHANCED_PROC_CHANCE * 100).toFixed(0)}%，傷害${(GAME_CONFIG.HAMMER_CONFIG.ENHANCED_DAMAGE_MULTIPLIER * 100).toFixed(0)}%)`);
+    if (player.hammerEffects.duration) buffs.push(`⏱️ 重錘延續 (眩暈時間${GAME_CONFIG.HAMMER_CONFIG.ENHANCED_STUN_DURATION}秒)`);
     
     // 反甲效果
-    if (player.hasReflectArmor) buffs.push('⚡ 反甲護盾 (每受傷5次反彈5%敵人血量)');
+    if (player.hasReflectArmor) buffs.push(`⚡ 反甲護盾 (每受傷${GAME_CONFIG.REFLECT_ARMOR_CONFIG.TRIGGER_INTERVAL}次反彈${(GAME_CONFIG.REFLECT_ARMOR_CONFIG.DAMAGE_PERCENT * 100).toFixed(0)}%敵人血量)`);
     
     // 臨時效果
     const statusInfo = player.getStatusInfo();
@@ -732,7 +733,6 @@ class EnhancedUIManager {
       : '<div style="opacity: 0.6; font-size: 13px;">暫無效果</div>';
   }
 
-  // 縮短戰鬥結果顯示時間
   showBattleResults(battleStats, player, displayTime = 3000) {
     const resultsDiv = document.createElement('div');
     resultsDiv.style.cssText = `
@@ -741,13 +741,13 @@ class EnhancedUIManager {
       left: 50%;
       transform: translate(-50%, -50%);
       background: linear-gradient(135deg, #2a2a40 0%, #1a1a2e 100%);
-      border: 2px solid #4ecdc4;
+      border: 2px solid ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY};
       border-radius: 20px;
       padding: 30px;
       color: white;
       min-width: 500px;
       text-align: center;
-      z-index: 1500;
+      z-index: ${GAME_CONFIG.UI_CONFIG.Z_INDEX.BATTLE_RESULTS};
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
     `;
 
@@ -762,19 +762,19 @@ class EnhancedUIManager {
       (battleStats.hammerProcCount / battleStats.playerAttackCount * 100) : 0;
 
     resultsDiv.innerHTML = `
-      <h2 style="color: #4ecdc4; margin-bottom: 20px;">⚔️ 戰鬥總結</h2>
+      <h2 style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY}; margin-bottom: 20px;">⚔️ 戰鬥總結</h2>
       <div style="text-align: left; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 15px;">
-        <div>⏱️ 戰鬥時長: <span style="color: #ffd700; font-weight: bold;">${battleDuration.toFixed(1)}秒</span></div>
-        <div>❤️ 剩餘血量: <span style="color: #ff6b6b; font-weight: bold;">${player.hp.toFixed(1)}/${player.maxHp}</span></div>
-        <div>🗡️ 攻擊次數: <span style="color: #ffd700; font-weight: bold;">${battleStats.playerAttackCount}</span></div>
-        <div>📊 平均傷害: <span style="color: #ffd700; font-weight: bold;">${avgDamage.toFixed(1)}</span></div>
-        <div>💥 暴擊率: <span style="color: #ff6b6b; font-weight: bold;">${critRate.toFixed(1)}%</span></div>
-        <div>🔨 重錘率: <span style="color: #ff6b6b; font-weight: bold;">${hammerRate.toFixed(1)}%</span></div>
+        <div>⏱️ 戰鬥時長: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; font-weight: bold;">${battleDuration.toFixed(1)}秒</span></div>
+        <div>❤️ 剩餘血量: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.SECONDARY}; font-weight: bold;">${player.hp.toFixed(1)}/${player.maxHp}</span></div>
+        <div>🗡️ 攻擊次數: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; font-weight: bold;">${battleStats.playerAttackCount}</span></div>
+        <div>📊 平均傷害: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; font-weight: bold;">${avgDamage.toFixed(1)}</span></div>
+        <div>💥 暴擊率: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.SECONDARY}; font-weight: bold;">${critRate.toFixed(1)}%</span></div>
+        <div>🔨 重錘率: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.SECONDARY}; font-weight: bold;">${hammerRate.toFixed(1)}%</span></div>
         <div>🛡️ 受擊次數: <span style="color: #ccc; font-weight: bold;">${battleStats.enemyAttackCount}</span></div>
         <div>📉 平均受傷: <span style="color: #ccc; font-weight: bold;">${avgDamageTaken.toFixed(1)}</span></div>
       </div>
       <button onclick="this.parentElement.remove()" style="
-        background: #4ecdc4;
+        background: ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY};
         color: white;
         border: none;
         padding: 12px 25px;
@@ -785,7 +785,7 @@ class EnhancedUIManager {
         transition: background 0.3s ease;
       " 
       onmouseover="this.style.background='#45b7b8'" 
-      onmouseout="this.style.background='#4ecdc4'">繼續 (${(displayTime/1000).toFixed(0)}秒後自動關閉)</button>
+      onmouseout="this.style.background='${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY}'">繼續 (${(displayTime/1000).toFixed(0)}秒後自動關閉)</button>
     `;
 
     document.body.appendChild(resultsDiv);
@@ -803,7 +803,7 @@ class EnhancedUIManager {
       }
     }, 1000);
 
-    // 縮短自動關閉時間
+    // 自動關閉
     setTimeout(() => {
       if (resultsDiv.parentNode) {
         resultsDiv.remove();

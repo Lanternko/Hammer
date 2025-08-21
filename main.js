@@ -1,9 +1,13 @@
-// main.js - Game Entry Point
+// main.js - Game Entry Point (使用配置版本)
 import GameManager from './src/game/GameManager.js';
+import ErrorHandler from './src/utils/ErrorHandler.js';
+import { GAME_CONFIG } from './src/config/GameConfig.js';
 
 console.log('📁 main.js loaded');
-console.log('📦 GameManager imported:', GameManager);
-console.log('🔍 GameManager is constructor?', typeof GameManager === 'function');
+console.log('⚙️ Game config loaded:', GAME_CONFIG.DEBUG.ENABLED ? GAME_CONFIG : 'Config ready');
+
+// Initialize error handler
+const errorHandler = new ErrorHandler();
 
 // Initialize game when page loads
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,49 +19,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const game = new GameManager();
     console.log('✅ GameManager created successfully:', game);
     
-    // Start game after a short delay to ensure UI is ready
+    // Start game after configured delay
     setTimeout(() => {
       console.log('🚀 Starting game...');
       game.startGame();
       console.log('✅ Game started successfully');
-    }, 100);
+    }, GAME_CONFIG.UI_CONFIG.LOADING_SCREEN_DURATION);
     
     // Make game globally accessible for debugging
     window.game = game;
     
+    // Global error handling for runtime errors
+    window.addEventListener('error', (event) => {
+      errorHandler.showRuntimeError(event.error, 'global-error');
+    });
+    
+    window.addEventListener('unhandledrejection', (event) => {
+      errorHandler.showRuntimeError(event.reason, 'promise-rejection');
+    });
+    
   } catch (error) {
     console.error('❌ Failed to initialize game:', error);
-    console.error('Error stack:', error.stack);
-    
-    // Display error message
-    document.body.innerHTML += `
-      <div style="
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(255, 0, 0, 0.9);
-        color: white;
-        padding: 20px;
-        border-radius: 15px;
-        text-align: center;
-        z-index: 9999;
-        font-family: Arial, sans-serif;
-      ">
-        <h2>Game Initialization Error</h2>
-        <p>Error: ${error.message}</p>
-        <button onclick="location.reload()" style="
-          margin-top: 15px;
-          padding: 10px 20px;
-          background: white;
-          color: red;
-          border: none;
-          border-radius: 8px;
-          cursor: pointer;
-          font-weight: bold;
-        ">Reload Game</button>
-      </div>
-    `;
+    errorHandler.showInitializationError(error);
   }
 });
 
