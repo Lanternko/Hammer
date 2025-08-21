@@ -1,0 +1,229 @@
+/* styles/overlays.css - 覆蓋層和彈窗樣式 */
+
+/* 通用覆蓋層 */
+.overlay-base {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* 升級選擇覆蓋層 */
+#levelUpOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* 事件覆蓋層 */
+#eventOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* 通用面板 */
+.modal-panel {
+    background: linear-gradient(135deg, #2a2a40 0%, #1a1a2e 100%);
+    border: 2px solid #4ecdc4;
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 800px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    color: white;
+}
+
+/* 升級選項 */
+.upgrade-option {
+    flex: 1;
+    max-width: 250px;
+    padding: 20px;
+    background: rgba(78, 205, 196, 0.1);
+    border: 2px solid #4ecdc4;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.upgrade-option:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 25px rgba(78, 205, 196, 0.4);
+}
+
+/* 商店物品 */
+.shop-item {
+    flex: 1;
+    max-width: 250px;
+    padding: 20px;
+    background: rgba(78, 205, 196, 0.1);
+    border: 2px solid #4ecdc4;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.shop-item:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 25px rgba(78, 205, 196, 0.4);
+}
+
+.shop-item.disabled {
+    background: rgba(128, 128, 128, 0.1);
+    border-color: #666;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* 稀有度標籤 */
+.rarity-tag {
+    margin-top: 10px;
+    padding: 5px 10px;
+    color: white;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+    display: inline-block;
+}
+
+.rarity-common { background: #A0A0A0; }
+.rarity-uncommon { background: #4CAF50; }
+.rarity-rare { background: #2196F3; }
+.rarity-epic { background: #9C27B0; }
+.rarity-legendary { background: #FF9800; }
+
+/* 遊戲結束畫面 */
+.game-over-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.game-over-panel {
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    color: white;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.victory-panel {
+    background: linear-gradient(135deg, #2ECC71, #27AE60);
+}
+
+.defeat-panel {
+    background: linear-gradient(135deg, #E74C3C, #C0392B);
+}
+
+/* 徽章獲得動畫 */
+.badge-reward {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: white;
+    padding: 30px;
+    border-radius: 20px;
+    text-align: center;
+    z-index: 2000;
+    box-shadow: 0 20px 40px rgba(255, 215, 0, 0.4);
+    animation: badgePulse 0.6s ease-out;
+}
+
+@keyframes badgePulse {
+    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+    50% { transform: translate(-50%, -50%) scale(1.1); }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+/* 戰鬥結果面板 */
+.battle-results {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #2a2a40 0%, #1a1a2e 100%);
+    border: 2px solid #4ecdc4;
+    border-radius: 20px;
+    padding: 30px;
+    color: white;
+    min-width: 500px;
+    text-align: center;
+    z-index: 1500;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* 錯誤提示 */
+.error-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 0, 0, 0.95);
+    color: white;
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    z-index: 9998;
+    font-family: Arial, sans-serif;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+}
+
+/* 通知 */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 107, 107, 0.95);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 10px;
+    z-index: 9997;
+    font-family: Arial, sans-serif;
+    max-width: 400px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    animation: slideInFromRight 0.3s ease-out;
+}
+
+@keyframes slideInFromRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
