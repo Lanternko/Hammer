@@ -1,4 +1,4 @@
-// src/game/GameManager.js - 快速修復版（暫時向後兼容）
+// src/game/GameManager.js - 護甲懸浮說明修復
 import Player from './Player.js';
 import Enemy from './Enemy.js';
 import BattleSystem from '../systems/BattleSystem.js';
@@ -93,9 +93,9 @@ class GameManager {
   endBattle(won, battleStats = null) {
     console.log(`⚔️ 戰鬥結束 - ${won ? '✅ 勝利' : '❌ 失敗'}`);
     
-    // 縮短戰鬥結果顯示時間到3秒
+    // 顯示戰鬥統計（延長顯示時間到8秒）
     if (battleStats && this.enhancedUI) {
-      this.enhancedUI.showBattleResults(battleStats, this.player, 3000);
+      this.enhancedUI.showBattleResults(battleStats, this.player, 8000);
     }
     
     if (!won) {
@@ -111,10 +111,10 @@ class GameManager {
     this.player.hp = this.player.maxHp;
     console.log('💚 血量已回滿');
 
-    // 顯示升級選擇
+    // 延遲顯示升級選擇
     setTimeout(() => {
       this.showLevelUpChoice(goldReward);
-    }, 1000);
+    }, 3000);
   }
 
   showLevelUpChoice(goldReward) {
@@ -213,7 +213,7 @@ class GameManager {
         setTimeout(() => {
           this.currentLevel++;
           this.nextLevel();
-        }, 500); // 縮短延遲
+        }, 1000);
       });
 
       option.addEventListener('mouseenter', () => {
@@ -235,21 +235,10 @@ class GameManager {
     
     if (upgrade.isPercentage) {
       newValue = Math.floor(currentValue * (1 + upgrade.value));
-      return `${Math.floor(currentValue)} → ${newValue} (+${(upgrade.value * 100).toFixed(0)}%)`;
+      return `${currentValue} → ${newValue} (+${(upgrade.value * 100).toFixed(1)}%)`;
     } else {
-      if (upgrade.type === 'critChance') {
-        // 暴擊率特殊處理：顯示百分比
-        const currentPercent = (currentValue * 100).toFixed(0);
-        const newPercent = ((currentValue + upgrade.value) * 100).toFixed(0);
-        return `${currentPercent}% → ${newPercent}% (+${(upgrade.value * 100).toFixed(0)}%)`;
-      } else if (upgrade.type === 'attackSpeed') {
-        // 攻速保留小數點
-        newValue = (currentValue + upgrade.value).toFixed(2);
-        return `${currentValue.toFixed(2)} → ${newValue} (+${upgrade.value.toFixed(2)})`;
-      } else {
-        newValue = Math.floor(currentValue + upgrade.value);
-        return `${Math.floor(currentValue)} → ${newValue} (+${upgrade.value})`;
-      }
+      newValue = currentValue + upgrade.value;
+      return `${currentValue} → ${newValue} (+${upgrade.value})`;
     }
   }
 
@@ -259,9 +248,8 @@ class GameManager {
       case 'maxHp': return this.player.maxHp;
       case 'armor': return this.player.getEffectiveArmor();
       case 'attackSpeed': return this.player.getEffectiveAttackSpeed();
-      case 'critChance': return this.player.critChance;
+      case 'critChance': return (this.player.critChance * 100).toFixed(1);
       case 'flatReduction': return this.player.flatReduction;
-      case 'lifesteal': return this.player.lifesteal || 0;
       default: return 0;
     }
   }
@@ -453,10 +441,9 @@ class GameManager {
     this.enemy = null;
     this.state = 'battle';
     
-    this.overlayManager.clearAllOverlays();
-    this.uiManager.resetBaseUI();
-    this.rewardSystem.giveStartingBadge(this.player);
-    this.deathSystem.handleInheritedBadges(this.player);
+    // 清理UI
+    const existingOverlays = document.querySelectorAll('[id*="Overlay"], .damage-indicator, #speedControl');
+    existingOverlays.forEach(overlay => overlay.remove());
     
     this.uiManager.updateUI();
     this.nextLevel();
@@ -600,7 +587,7 @@ class GameUIManager {
       roundCounter.textContent = 'Round 1 / 20';
     }
 
-    // 更新統計面板
+    // 更新統計面板 - 修復顯示問題
     const stats = document.querySelectorAll('.stat-value');
     if (stats.length >= 4) {
       stats[0].textContent = this.player.getEffectiveAttack().toFixed(1);
@@ -617,147 +604,90 @@ class GameUIManager {
       heroHealthText.textContent = '100 / 100';
     }
   }
-}
 
-// 簡化版的 OverlayManager
-class OverlayManager {
-  constructor(gameManager) {
-    this.gameManager = gameManager;
-  }
-
-  clearAllOverlays() {
-    const overlaySelectors = [
-      '#deathSummaryOverlay',
-      '#levelUpOverlay', 
-      '#eventOverlay',
-      '#pauseOverlay',
-      '[class*="overlay"]',
-      '[class*="screen"]'
-    ];
-
-    overlaySelectors.forEach(selector => {
-      const elements = document.querySelectorAll(selector);
-      elements.forEach(element => {
-        if (element.parentNode) {
-          element.remove();
-        }
-      });
-    });
-  }
-
-  showBattleResults(battleStats, player, displayTime = 0) {
-    // 簡化實現 - 只顯示基本信息
-    console.log('⚔️ 戰鬥勝利！');
-  }
-
-  showGameOverScreen(currentLevel, player, diamonds) {
-    // 簡化實現
-    console.log(`🎯 遊戲結束！關卡: ${currentLevel}, 鑽石: ${diamonds}`);
+  // 計算護甲減傷百分比
+  calculateDamageReduction() {
+    const armor = this.player.getEffectiveArmor();
+    const reduction = armor / (armor + 100) * 100;
+    return reduction.toFixed(1);
   }
 }
 
-// 簡化版的 ProgressionSystem
-class ProgressionSystem {
-  constructor(gameManager) {
-    this.gameManager = gameManager;
-    this.isShowingLevelUpChoice = false;
-  }
-
-  resetProgressionState() {
-    this.isShowingLevelUpChoice = false;
-  }
-
-  showLevelUpChoice(currentLevel, goldReward) {
-    this.isShowingLevelUpChoice = true;
-    
-    // 使用原有的升級系統
-    import('../data/upgradeRewards.js').then(module => {
-      const upgradeOptions = module.generateUpgradeOptions(currentLevel);
-      this.createUpgradeOverlay(currentLevel, goldReward, upgradeOptions);
-    }).catch(error => {
-      console.error('升級選項載入失敗:', error);
-      // 直接跳到下一關
-      this.isShowingLevelUpChoice = false;
-      setTimeout(() => {
-        this.gameManager.currentLevel++;
-        this.gameManager.nextLevel();
-      }, 300);
-    });
-  }
-
-  createUpgradeOverlay(currentLevel, goldReward, upgradeOptions) {
-    // 使用原有的升級選擇邏輯...
-    console.log('顯示升級選擇...');
-    
-    // 暫時自動選擇第一個選項
-    setTimeout(() => {
-      this.isShowingLevelUpChoice = false;
-      this.gameManager.currentLevel++;
-      this.gameManager.nextLevel();
-    }, 1000);
-  }
-}
-
-// 簡化版的 DeathSystem
-class DeathSystem {
-  constructor(gameManager) {
-    this.gameManager = gameManager;
-    this.inheritedBadges = [];
-  }
-
-  handleInheritedBadges(player) {
-    // 簡化實現
-    console.log('處理繼承徽章...');
-  }
-
-  showDeathSummary(player, currentLevel, battleStats) {
-    // 簡化實現 - 直接重新開始
-    setTimeout(() => {
-      this.gameManager.resetGame();
-    }, 2000);
+// 增強的UI管理器類 - 修復護甲說明位置
+class EnhancedUIManager {
+  constructor() {
+    this.createBuffDisplayArea();
+    this.createHoverTooltips(); // 新增懸浮提示
   }
 
   restartWithInheritance() {
     this.gameManager.resetGame();
   }
 
-  restartWithoutInheritance() {
-    this.inheritedBadges = [];
-    this.gameManager.resetGame();
-  }
-}
-
-// 簡化版的 RewardSystem
-class RewardSystem {
-  constructor(gameManager) {
-    this.gameManager = gameManager;
-    this.gold = 0;
-    this.diamonds = 0;
-  }
-
-  giveStartingBadge(player) {
-    try {
-      if (!player || !player.equipBadge) {
-        console.error('❌ Player not initialized or missing equipBadge method');
-        return;
+  // 新增：創建懸浮提示系統
+  createHoverTooltips() {
+    // 為統計面板添加問號圖標和懸浮說明
+    setTimeout(() => {
+      const statsPanel = document.querySelector('.stats-panel');
+      if (statsPanel) {
+        // 找到防禦行
+        const statRows = statsPanel.querySelectorAll('.stat-row');
+        statRows.forEach(row => {
+          const label = row.querySelector('.stat-label');
+          if (label && label.textContent.includes('Defense')) {
+            // 添加問號圖標
+            const helpIcon = document.createElement('span');
+            helpIcon.innerHTML = ' ❓';
+            helpIcon.style.cssText = `
+              cursor: help;
+              margin-left: 5px;
+              font-size: 12px;
+              opacity: 0.7;
+              position: relative;
+            `;
+            
+            // 創建懸浮提示
+            const tooltip = document.createElement('div');
+            tooltip.style.cssText = `
+              position: absolute;
+              bottom: 25px;
+              left: 50%;
+              transform: translateX(-50%);
+              background: rgba(0, 0, 0, 0.9);
+              color: white;
+              padding: 10px;
+              border-radius: 8px;
+              font-size: 12px;
+              line-height: 1.4;
+              width: 200px;
+              z-index: 1000;
+              border: 1px solid rgba(255, 255, 255, 0.2);
+              display: none;
+            `;
+            
+            tooltip.innerHTML = `
+              <strong>🛡️ 減傷機制</strong><br>
+              護甲減傷% = 護甲 ÷ (護甲 + 100)<br>
+              <span style="color: #ffd700;">例: 50護甲 = 33.3%減傷</span><br><br>
+              <strong>計算順序:</strong><br>
+              原始傷害 → 護甲減傷 → 固定減傷 → 最終傷害
+            `;
+            
+            helpIcon.appendChild(tooltip);
+            label.appendChild(helpIcon);
+            
+            // 添加懸浮事件
+            helpIcon.addEventListener('mouseenter', () => {
+              tooltip.style.display = 'block';
+            });
+            
+            helpIcon.addEventListener('mouseleave', () => {
+              tooltip.style.display = 'none';
+            });
+          }
+        });
       }
-
-      const hammerBadge = {
-        key: 'hammerMastery',
-        name: '重錘精通',
-        description: '每次攻擊有25%機率造成150%傷害並眩暈敵人',
-        icon: '🔨',
-        effect: { hammerMastery: true },
-        rarity: 'legendary',
-        cost: 0
-      };
-      
-      player.equipBadge(hammerBadge);
-      console.log('🔨 獲得開局徽章: 重錘精通');
-      
-    } catch (error) {
-      console.error('❌ giveStartingBadge 錯誤:', error);
-    }
+    }, 1000); // 延遲1秒確保DOM加載完成
   }
 
   addGold(amount) {
@@ -765,8 +695,8 @@ class RewardSystem {
     console.log(`💰 獲得金幣: +${amount}，總金幣: ${this.gold}`);
   }
 
-  // 縮短戰鬥結果顯示時間
-  showBattleResults(battleStats, player, displayTime = 3000) {
+  // 顯示戰鬥結束的詳細統計（延長顯示時間）
+  showBattleResults(battleStats, player, displayTime = 8000) {
     const resultsDiv = document.createElement('div');
     resultsDiv.style.cssText = `
       position: fixed;
@@ -834,7 +764,7 @@ class RewardSystem {
       }
     }, 1000);
 
-    // 縮短自動關閉時間
+    // 延長時間後自動關閉
     setTimeout(() => {
       if (resultsDiv.parentNode) {
         resultsDiv.remove();
