@@ -199,6 +199,10 @@ class BattleSystem {
     // 添加速度控制按鈕
     this.createSpeedControlUI();
     this.loop();
+    // 添加暫停按鈕和速度控制按鈕
+    this.createSpeedControlUI();
+    this.createPauseButton(); // 新增這行
+    this.loop();
   }
 
   createSpeedControlUI() {
@@ -235,6 +239,7 @@ class BattleSystem {
     window.gameManager = this.gameManager;
   }
 
+  // 🔧 在 stop() 方法中清理暫停按鈕
   stop() {
     this.isActive = false;
     if (this.animationId) {
@@ -242,14 +247,16 @@ class BattleSystem {
       this.animationId = null;
     }
     
-    // 清理速度控制UI
+    // 清理UI元素
     const speedControl = document.getElementById('speedControl');
-    if (speedControl) speedControl.remove();
-    window.gameManager = null;
+    const pauseButton = document.getElementById('pauseButton');
+    const detailedPanel = document.getElementById('detailedPanel');
     
-    if (GAME_CONFIG.DEBUG.ENABLED) {
-      console.log('🔧 [DEBUG] 戰鬥系統已停止');
-    }
+    if (speedControl) speedControl.remove();
+    if (pauseButton) pauseButton.remove();
+    if (detailedPanel) detailedPanel.remove();
+    
+    window.gameManager = null;
   }
 
   loop() {
@@ -396,6 +403,208 @@ class BattleSystem {
     }
   }
 
+  // 🔧 在 createSpeedControlUI() 方法後添加暫停按鈕創建
+  createPauseButton() {
+    // 檢查是否已存在
+    if (document.getElementById('pauseButton')) return;
+    
+    const pauseButton = document.createElement('button');
+    pauseButton.id = 'pauseButton';
+    pauseButton.innerHTML = this.isActive ? '⏸️' : '▶️';
+    pauseButton.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 2px solid ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY};
+      border-radius: 50%;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      z-index: ${GAME_CONFIG.UI_CONFIG.Z_INDEX.SPEED_CONTROL + 1};
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    `;
+    
+    // 懸浮效果
+    pauseButton.addEventListener('mouseenter', () => {
+      pauseButton.style.transform = 'scale(1.1)';
+      pauseButton.style.boxShadow = `0 0 20px ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY}60`;
+    });
+    
+    pauseButton.addEventListener('mouseleave', () => {
+      pauseButton.style.transform = 'scale(1)';
+      pauseButton.style.boxShadow = 'none';
+    });
+    
+    // 點擊事件
+    pauseButton.addEventListener('click', () => {
+      this.togglePause();
+    });
+    
+    document.body.appendChild(pauseButton);
+  }
+
+  // 🔧 暫停/恢復切換功能
+  togglePause() {
+    if (this.isActive) {
+      this.pause();
+      this.showDetailedPanel();
+    } else {
+      this.resume();
+      this.hideDetailedPanel();
+    }
+    
+    // 更新按鈕圖標
+    const pauseButton = document.getElementById('pauseButton');
+    if (pauseButton) {
+      pauseButton.innerHTML = this.isActive ? '⏸️' : '▶️';
+    }
+  }
+
+  // 🔧 顯示詳細面板
+  showDetailedPanel() {
+    // 移除舊面板
+    const existingPanel = document.getElementById('detailedPanel');
+    if (existingPanel) existingPanel.remove();
+    
+    const panel = document.createElement('div');
+    panel.id = 'detailedPanel';
+    panel.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, #2a2a40 0%, #1a1a2e 100%);
+      border: 2px solid ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY};
+      border-radius: 20px;
+      padding: 30px;
+      color: white;
+      min-width: 800px;
+      max-width: 90vw;
+      max-height: 80vh;
+      overflow-y: auto;
+      z-index: ${GAME_CONFIG.UI_CONFIG.Z_INDEX.OVERLAYS};
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(15px);
+    `;
+    
+    const playerStats = this.player.getInfo();
+    const enemyStats = this.enemy.getInfo();
+    const battleStats = this.getCurrentStats();
+    
+    panel.innerHTML = `
+      <h2 style="text-align: center; color: ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY}; margin-bottom: 20px;">
+        ⏸️ 遊戲暫停 - 詳細數據面板
+      </h2>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 20px;">
+        <!-- 玩家面板 -->
+        <div style="background: rgba(78, 205, 196, 0.1); padding: 20px; border-radius: 15px; border-left: 4px solid ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY};">
+          <h3 style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY}; margin-bottom: 15px;">👤 玩家詳細數據</h3>
+          
+          <div style="margin-bottom: 15px;">
+            <h4 style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; margin-bottom: 8px;">⚡ 有效屬性</h4>
+            <div style="font-size: 14px; line-height: 1.6;">
+              <div>❤️ 血量: <span style="color: #ff6b6b; font-weight: bold;">${playerStats.effectiveStats.hp.toFixed(1)}/${playerStats.effectiveStats.maxHp}</span></div>
+              <div>⚔️ 攻擊: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; font-weight: bold;">${playerStats.effectiveStats.attack}</span></div>
+              <div>⚡ 攻速: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.WARNING}; font-weight: bold;">${playerStats.effectiveStats.attackSpeed.toFixed(2)}</span></div>
+              <div>🛡️ 護甲: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY}; font-weight: bold;">${playerStats.effectiveStats.armor}</span></div>
+              <div>🔰 固減: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY}; font-weight: bold;">${playerStats.effectiveStats.flatReduction}</span></div>
+              <div>💥 暴擊: <span style="color: #ff1744; font-weight: bold;">${(playerStats.effectiveStats.critChance * 100).toFixed(1)}%</span></div>
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <h4 style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; margin-bottom: 8px;">📊 屬性分解</h4>
+            <div style="font-size: 12px; opacity: 0.9;">
+              <div>基礎攻擊: ${playerStats.baseStats.attack} → 加成: +${playerStats.bonusStats.attack} → 倍率: ×${playerStats.multipliers.attack.toFixed(2)} = ${playerStats.effectiveStats.attack}</div>
+              <div>基礎血量: ${playerStats.baseStats.hp} → 加成: +${playerStats.bonusStats.hp} → 倍率: ×${playerStats.multipliers.hp.toFixed(2)} = ${playerStats.effectiveStats.maxHp}</div>
+            </div>
+          </div>
+          
+          <div>
+            <h4 style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; margin-bottom: 8px;">🔨 重錘BD狀態</h4>
+            <div style="font-size: 13px;">
+              ${Object.entries(playerStats.hammerEffects).map(([key, value]) => 
+                value ? `<div style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.WARNING};">✅ ${this.getHammerEffectName(key)}</div>` : ''
+              ).join('')}
+            </div>
+          </div>
+        </div>
+        
+        <!-- 敵人面板 -->
+        <div style="background: rgba(255, 107, 107, 0.1); padding: 20px; border-radius: 15px; border-left: 4px solid ${GAME_CONFIG.UI_CONFIG.COLORS.SECONDARY};">
+          <h3 style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.SECONDARY}; margin-bottom: 15px;">👹 敵人詳細數據</h3>
+          
+          <div style="margin-bottom: 15px;">
+            <h4 style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; margin-bottom: 8px;">⚡ 當前屬性</h4>
+            <div style="font-size: 14px; line-height: 1.6;">
+              <div>❤️ 血量: <span style="color: #ff6b6b; font-weight: bold;">${this.enemy.hp.toFixed(1)}/${this.enemy.maxHp}</span></div>
+              <div>⚔️ 攻擊: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; font-weight: bold;">${this.enemy.attack}</span></div>
+              <div>⚡ 攻速: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.WARNING}; font-weight: bold;">${this.enemy.attackSpeed.toFixed(2)}</span></div>
+              <div>🛡️ 防禦: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.SECONDARY}; font-weight: bold;">${this.enemy.defense}</span></div>
+              <div>🏷️ 類型: <span style="color: white; font-weight: bold;">${this.enemy.emoji} ${this.enemy.name}</span></div>
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <h4 style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; margin-bottom: 8px;">📈 威脅評估</h4>
+            <div style="font-size: 13px;">
+              <div>DPS: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.WARNING}; font-weight: bold;">${this.calculateEnemyDPS().toFixed(1)}</span></div>
+              <div>血量池: <span style="color: #ff6b6b; font-weight: bold;">${((this.enemy.hp / this.enemy.maxHp) * 100).toFixed(1)}%</span></div>
+              ${this.enemy.isStunned ? '<div style="color: #ff6b6b;">😵 當前被眩暈</div>' : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 戰鬥統計 -->
+      <div style="background: rgba(255, 215, 0, 0.1); padding: 20px; border-radius: 15px; border-left: 4px solid ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; margin-bottom: 20px;">
+        <h3 style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; margin-bottom: 15px;">📊 當前戰鬥統計</h3>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; font-size: 14px;">
+          <div>⏱️ 戰鬥時長: <strong>${battleStats.battleDuration.toFixed(1)}秒</strong></div>
+          <div>🗡️ 攻擊次數: <strong>${battleStats.playerAttackCount}</strong></div>
+          <div>💥 暴擊次數: <strong>${battleStats.critCount} (${battleStats.critRate.toFixed(1)}%)</strong></div>
+          <div>🔨 重錘次數: <strong>${battleStats.hammerProcCount} (${battleStats.hammerRate.toFixed(1)}%)</strong></div>
+          <div>📈 平均DPS: <strong>${battleStats.actualDPS.toFixed(1)}</strong></div>
+          <div>🛡️ 受擊次數: <strong>${battleStats.enemyAttackCount}</strong></div>
+          <div>📉 平均受傷: <strong>${battleStats.avgDamageTaken.toFixed(1)}</strong></div>
+          <div>⚡ 反甲觸發: <strong>${battleStats.reflectArmorTriggerCount}</strong></div>
+        </div>
+      </div>
+      
+      <div style="text-align: center;">
+        <button onclick="document.getElementById('pauseButton').click()" style="
+          padding: 15px 30px;
+          background: ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY};
+          color: white;
+          border: none;
+          border-radius: 25px;
+          font-size: 16px;
+          font-weight: bold;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        " onmouseover="this.style.background='#45b7b8'" onmouseout="this.style.background='${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY}'">
+          ▶️ 繼續戰鬥
+        </button>
+      </div>
+    `;
+    
+    document.body.appendChild(panel);
+  }
+
+  // 🔧 隱藏詳細面板
+  hideDetailedPanel() {
+    const panel = document.getElementById('detailedPanel');
+    if (panel) panel.remove();
+  }
+
   // 浮動傷害顯示（在血條旁邊）
   showFloatingDamage(damage, isPlayerTaking) {
     const targetCard = document.querySelector(isPlayerTaking ? '.hero .character-card' : '.enemy .character-card');
@@ -478,6 +687,20 @@ class BattleSystem {
     }, 100);
   }
 
+  // 🔧 獲取重錘效果名稱
+  getHammerEffectName(key) {
+    const names = {
+      mastery: '重錘精通',
+      storm: '重錘風暴', 
+      shield: '重錘護盾',
+      heal: '重錘恢復',
+      fury: '重錘狂怒',
+      weight: '重錘加重',
+      duration: '重錘延續'
+    };
+    return names[key] || key;
+  }
+
   showDamageNumber(damage, isCritical, isEnemyAttack, prefix = '') {
     const targetCard = document.querySelector(isEnemyAttack ? '.hero .character-card' : '.enemy .character-card');
     if (!targetCard) return;
@@ -523,6 +746,91 @@ class BattleSystem {
         damageIndicator.remove();
       }
     }, GAME_CONFIG.DAMAGE_DISPLAY_DURATION);
+  }
+
+  showBattleResults(battleStats, player, displayTime = 3000) {
+    const resultsDiv = document.createElement('div');
+    resultsDiv.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: ${GAME_CONFIG.UI_CONFIG.Z_INDEX.BATTLE_RESULTS};
+      cursor: pointer;
+    `;
+
+    const contentDiv = document.createElement('div');
+    contentDiv.style.cssText = `
+      background: linear-gradient(135deg, #2a2a40 0%, #1a1a2e 100%);
+      border: 2px solid ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY};
+      border-radius: 20px;
+      padding: 30px;
+      color: white;
+      min-width: 500px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      cursor: default;
+    `;
+
+    const battleDuration = (Date.now() - battleStats.startTime) / 1000;
+    const avgDamage = battleStats.playerAttackCount > 0 ? 
+      (battleStats.playerTotalDamage / battleStats.playerAttackCount) : 0;
+    const avgDamageTaken = battleStats.enemyAttackCount > 0 ? 
+      (battleStats.playerDamageReceived / battleStats.enemyAttackCount) : 0;
+    const critRate = battleStats.playerAttackCount > 0 ? 
+      (battleStats.critCount / battleStats.playerAttackCount * 100) : 0;
+    const hammerRate = battleStats.playerAttackCount > 0 ? 
+      (battleStats.hammerProcCount / battleStats.playerAttackCount * 100) : 0;
+
+    contentDiv.innerHTML = `
+      <h2 style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY}; margin-bottom: 20px;">⚔️ 戰鬥總結</h2>
+      <div style="text-align: left; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 15px;">
+        <div>⏱️ 戰鬥時長: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; font-weight: bold;">${battleDuration.toFixed(1)}秒</span></div>
+        <div>❤️ 剩餘血量: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.SECONDARY}; font-weight: bold;">${player.hp.toFixed(1)}/${player.maxHp}</span></div>
+        <div>🗡️ 攻擊次數: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; font-weight: bold;">${battleStats.playerAttackCount}</span></div>
+        <div>📊 平均傷害: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; font-weight: bold;">${avgDamage.toFixed(1)}</span></div>
+        <div>💥 暴擊率: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.SECONDARY}; font-weight: bold;">${critRate.toFixed(1)}%</span></div>
+        <div>🔨 重錘率: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.SECONDARY}; font-weight: bold;">${hammerRate.toFixed(1)}%</span></div>
+        <div>🛡️ 受擊次數: <span style="color: #ccc; font-weight: bold;">${battleStats.enemyAttackCount}</span></div>
+        <div>📉 平均受傷: <span style="color: #ccc; font-weight: bold;">${avgDamageTaken.toFixed(1)}</span></div>
+      </div>
+      
+      <div style="background: rgba(255, 215, 0, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+        <div style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; font-size: 14px; opacity: 0.9;">
+          💡 點擊畫面任意位置繼續
+        </div>
+      </div>
+    `;
+
+    resultsDiv.appendChild(contentDiv);
+    
+    // 🔧 全螢幕點擊關閉事件
+    resultsDiv.addEventListener('click', (e) => {
+      // 如果點擊的是內容區域，檢查是否點擊邊緣
+      if (e.target === resultsDiv || e.target === contentDiv) {
+        resultsDiv.remove();
+      }
+    });
+    
+    // 🔧 防止內容區域的子元素點擊冒泡
+    contentDiv.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // 但如果直接點擊 contentDiv，也關閉
+      if (e.target === contentDiv) {
+        resultsDiv.remove();
+      }
+    });
+
+    document.body.appendChild(resultsDiv);
+    
+    // 🔧 移除自動關閉的 setTimeout
+    // setTimeout(() => { resultsDiv.remove(); }, displayTime); // 刪除這行
   }
 
   updateBattleDisplay() {

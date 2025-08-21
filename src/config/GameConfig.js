@@ -1,20 +1,11 @@
-// src/config/GameConfig.js - 遊戲配置統一管理
+// src/config/GameConfig.js - 遊戲配置文件
 export const GAME_CONFIG = {
-  // 🎮 核心遊戲參數
+  // 🎮 基礎遊戲設定
   TOTAL_LEVELS: 20,
   BATTLE_FPS: 20,
-  FRAME_INTERVAL: 50, // 1000ms / 20fps = 50ms
+  BASE_DELTA_TIME: 0.1, // 基礎時間間隔（10fps -> 0.1秒）
   
-  // 📅 特殊關卡設定
-  EVENT_LEVELS: [3, 8, 13, 18],
-  BOSS_LEVELS: [5, 10, 15, 20],
-  
-  // ⚔️ 戰鬥系統
-  BASE_DELTA_TIME: 0.05, // 每幀 0.05秒
-  DAMAGE_DISPLAY_DURATION: 1500, // 傷害數字顯示時間
-  BATTLE_RESULT_DISPLAY_TIME: 3000, // 戰鬥結果顯示時間
-  
-  // 🏃 戰鬥速度選項
+  // ⚡ 戰鬥速度設定
   BATTLE_SPEEDS: {
     NORMAL: 1,
     FAST: 3,
@@ -25,187 +16,137 @@ export const GAME_CONFIG = {
   GOLD_REWARDS: {
     NORMAL_LEVEL: 1,
     BOSS_LEVEL: 2,
-    FINAL_BOSS: 5,
+    FINAL_LEVEL: 5,
     INTEREST_RATE: 0.1, // 每10金幣+1利息
     MAX_INTEREST: 3
   },
   
-  // 💎 鑽石獎勵
   DIAMOND_REWARDS: {
-    PER_5_LEVELS: 1,
-    COMPLETION_BONUS: 5
+    PER_5_LEVELS: 1,      // 每5關給1鑽石
+    COMPLETION_BONUS: 5   // 通關額外獎勵
   },
   
-  // 🎲 隨機徽章權重
-  BADGE_WEIGHTS: {
-    EARLY_GAME: { // 第1-5關
-      basic: 3,
-      uncommon: 2,
-      rare: 1
-    },
-    MID_GAME: { // 第6-10關
-      basic: 2,
-      uncommon: 3,
-      rare: 2,
-      epic: 1
-    },
-    LATE_GAME: { // 第11-20關
-      uncommon: 2,
-      rare: 3,
-      epic: 2,
-      legendary: 1
-    }
-  },
+  // 🏪 事件關卡設定
+  EVENT_LEVELS: [3, 8, 13, 18], // 商店關卡
+  BOSS_LEVELS: [5, 10, 15, 20], // Boss關卡（里程碑徽章）
   
-  // 🔨 重錘BD設定
+  // 🔨 重錘BD配置
   HAMMER_CONFIG: {
-    BASE_PROC_CHANCE: 0.25, // 25%
-    ENHANCED_PROC_CHANCE: 0.35, // 35% (重錘加重)
-    BASE_DAMAGE_MULTIPLIER: 1.5, // 150%
-    ENHANCED_DAMAGE_MULTIPLIER: 1.7, // 170%
+    // 基礎重錘精通效果
+    BASE_PROC_CHANCE: 0.25,        // 25%觸發機率
+    BASE_DAMAGE_MULTIPLIER: 1.5,   // 150%傷害倍率
+    BASE_STUN_DURATION: 1.0,       // 1秒眩暈
     
-    // 🔧 新增：眩暈控制開關
-    STUN_ENABLED: false, // 設為 false 禁用眩暈
-    BASE_STUN_DURATION: 1.0, // 1秒（禁用時不生效）
-    ENHANCED_STUN_DURATION: 2.0, // 2秒（禁用時不生效）
+    // 強化版重錘效果（重錘加重）
+    ENHANCED_PROC_CHANCE: 0.35,    // 35%觸發機率
+    ENHANCED_DAMAGE_MULTIPLIER: 1.7, // 170%傷害倍率
+    ENHANCED_STUN_DURATION: 2.0,   // 2秒眩暈（重錘延續）
     
-    // 重錘效果
+    // 眩暈開關（可用於平衡調整）
+    STUN_ENABLED: false, // 🔧 設為 false 禁用眩暈效果
+    
+    // 其他重錘效果數值
     EFFECTS: {
-      STORM_CRIT: true, // 風暴必暴擊
-      SHIELD_ARMOR: 10, // 護盾+10護甲
-      SHIELD_DURATION: 5.0, // 護盾5秒
-      HEAL_AMOUNT: 15, // 恢復15血
-      FURY_SPEED_BOOST: 1.5, // 狂怒+50%攻速
-      FURY_DURATION: 3.0 // 狂怒3秒
+      SHIELD_ARMOR: 10,           // 重錘護盾：+10護甲
+      SHIELD_DURATION: 5.0,       // 重錘護盾：持續5秒
+      HEAL_AMOUNT: 15,            // 重錘恢復：+15血量
+      FURY_SPEED_BOOST: 1.5,      // 重錘狂怒：攻速+50%
+      FURY_DURATION: 3.0          // 重錘狂怒：持續3秒
     }
   },
   
-  // 🛡️ 反甲設定
+  // ⚡ 反甲護盾配置
   REFLECT_ARMOR_CONFIG: {
-    TRIGGER_INTERVAL: 5, // 每5次受擊觸發
-    DAMAGE_PERCENT: 0.05 // 反彈敵人5%最大血量
+    TRIGGER_INTERVAL: 5,    // 每受傷5次觸發一次
+    DAMAGE_PERCENT: 0.05    // 造成敵人最大血量5%的傷害
   },
   
-  // 📊 玩家基礎屬性
-  PLAYER_BASE_STATS: {
-    HP: 100,
-    ATTACK: 20,
-    ATTACK_SPEED: 0.5,
-    ARMOR: 20,
-    FLAT_REDUCTION: 5,
-    CRIT_CHANCE: 0.1
-  },
-  
-  // 🔄 升級系統
-  UPGRADE_CONFIG: {
-    PERCENTAGE_BOOSTS: {
-      SMALL: 0.15, // 15%
-      MEDIUM: 0.25, // 25%
-      LARGE: 0.35 // 35%
-    },
-    FLAT_BOOSTS: {
-      HP: [35, 55, 75],
-      ATTACK: [8, 12, 16],
-      ARMOR: [12, 18, 25],
-      ATTACK_SPEED: [0.15, 0.25, 0.35],
-      CRIT_CHANCE: [0.08, 0.12, 0.16],
-      FLAT_REDUCTION: [3, 5, 7]
-    }
-  },
-  
-  // 👹 敵人成長曲線
-  ENEMY_SCALING: {
-    EARLY_GAME: { // 1-3關
-      factor: 0.08, // 每關+8%
-      baseMultiplier: 1.0
-    },
-    MID_EARLY: { // 4-7關
-      factor: 0.12, // 每關+12%
-      baseMultiplier: 1.24
-    },
-    MID_GAME: { // 8-12關
-      factor: 0.18, // 每關+18%
-      baseMultiplier: 1.72
-    },
-    LATE_GAME: { // 13-17關
-      factor: 0.25, // 每關+25%
-      baseMultiplier: 2.62
-    },
-    END_GAME: { // 18-20關
-      factor: 0.35, // 每關+35%
-      baseMultiplier: 3.87
-    }
-  },
-  
-  // 🎨 UI 設定
+  // 🎨 UI配置
   UI_CONFIG: {
-    PARTICLE_COUNT: 30,
-    LOADING_SCREEN_DURATION: 1000,
-    NOTIFICATION_DURATION: 5000,
-    TOOLTIP_DELAY: 500,
-    
-    // 顏色主題
     COLORS: {
-      PRIMARY: '#4ecdc4',
-      SECONDARY: '#ff6b6b',
-      SUCCESS: '#4CAF50',
-      WARNING: '#FF9800',
-      ERROR: '#F44336',
-      GOLD: '#ffd700'
+      PRIMARY: '#4ecdc4',      // 主色調（青綠色）
+      SECONDARY: '#ff6b6b',    // 次要色（紅色）
+      SUCCESS: '#4CAF50',      // 成功色（綠色）
+      WARNING: '#FF9800',      // 警告色（橙色）
+      ERROR: '#F44336',        // 錯誤色（紅色）
+      GOLD: '#ffd700'          // 金色
     },
     
-    // Z-Index 層級
     Z_INDEX: {
-      BACKGROUND: 0,
-      GAME_UI: 100,
-      PANELS: 150,
-      SPEED_CONTROL: 200,
-      OVERLAYS: 1000,
-      BATTLE_RESULTS: 1500,
-      BADGES: 2000,
-      GAME_OVER: 2000,
-      ERRORS: 9997,
-      LOADING: 9999
+      PANELS: 100,             // 統計面板、Buff面板
+      SPEED_CONTROL: 200,      // 速度控制按鈕
+      OVERLAYS: 1000,          // 升級選擇、商店
+      BATTLE_RESULTS: 1500,    // 戰鬥結果
+      BADGES: 2000,            // 徽章獲得
+      GAME_OVER: 2500          // 遊戲結束
     }
   },
   
-  // 🔧 調試模式
+  // ⏱️ 時間設定
+  BATTLE_RESULT_DISPLAY_TIME: 0, // 🔧 設為0，完全由點擊控制
+  DAMAGE_DISPLAY_DURATION: 2000,  // 傷害數字顯示2秒
+  
+  // 👤 玩家配置
+  PLAYER_CONFIG: {
+    BASE_STATS: {
+      HP: 100,
+      ATTACK: 20,
+      ATTACK_SPEED: 0.5,
+      ARMOR: 20,
+      FLAT_REDUCTION: 5,
+      CRIT_CHANCE: 0.1
+    },
+    
+    LEVEL_UP: {
+      HP_GAIN: 10,
+      ATTACK_GAIN: 2,
+      EXP_MULTIPLIER: 1.2
+    }
+  },
+
+  // 👹 敵人配置
+  ENEMY_CONFIG: {
+    GROWTH_RATES: {
+      EARLY_GAME: 0.06,    // 前3關每級+6%
+      MID_GAME: 0.10,      // 4-7關每級+10%
+      LATE_GAME: 0.15,     // 8-12關每級+15%
+      END_GAME: 0.20       // 13關以後每級+20%
+    },
+    
+    BOSS_MULTIPLIER: 2.0,  // Boss血量倍率
+    SPECIAL_ABILITIES: {
+      BERSERKER_RAGE: 0.8,     // 狂戰士血量低於50%時攻擊增幅
+      MAGIC_ARMOR_PIERCE: 0.4,  // 法術師穿甲率
+      ASSASSIN_CRIT: 0.25       // 刺客暴擊率
+    }
+  },
+
+  // 🎯 平衡配置
+  BALANCE_CONFIG: {
+    DAMAGE_SCALING: {
+      PLAYER_ATTACK_GROWTH: 1.0,    // 玩家攻擊成長率
+      ENEMY_HP_GROWTH: 1.2,         // 敵人血量成長率
+      ARMOR_EFFECTIVENESS: 1.0      // 護甲效果倍率
+    },
+    
+    DIFFICULTY_CURVE: {
+      LEVEL_1_TO_5: 1.0,     // 前期難度倍率
+      LEVEL_6_TO_10: 1.2,    // 中期難度倍率
+      LEVEL_11_TO_15: 1.5,   // 後期難度倍率
+      LEVEL_16_TO_20: 2.0    // 最終難度倍率
+    }
+  },
+
+  // 🔧 調試設定
   DEBUG: {
-    ENABLED: false, // 生產環境設為 false
-    LOG_BATTLE_STATS: false,
-    LOG_DAMAGE_CALCULATIONS: false,
-    SHOW_PERFORMANCE_METRICS: false,
-    BYPASS_ANIMATIONS: false
-  },
-  
-  // 📱 響應式斷點
-  BREAKPOINTS: {
-    MOBILE: 480,
-    TABLET: 768,
-    DESKTOP: 1024,
-    LARGE_DESKTOP: 1440
-  },
-  
-  // 🎵 音效設定 (預留)
-  AUDIO: {
-    ENABLED: true,
-    MASTER_VOLUME: 0.7,
-    SFX_VOLUME: 0.8,
-    MUSIC_VOLUME: 0.5
+    ENABLED: false,                // 是否啟用調試模式
+    LOG_BATTLE_STATS: false,       // 是否記錄戰鬥統計
+    SHOW_PERFORMANCE_METRICS: false // 是否顯示性能指標
   }
 };
 
-// 🔧 輔助函數
+// 🛠️ 遊戲配置工具類
 export class GameConfigUtils {
-  // 根據關卡獲取敵人成長因子
-  static getEnemyScalingFactor(level) {
-    if (level <= 3) return GAME_CONFIG.ENEMY_SCALING.EARLY_GAME;
-    if (level <= 7) return GAME_CONFIG.ENEMY_SCALING.MID_EARLY;
-    if (level <= 12) return GAME_CONFIG.ENEMY_SCALING.MID_GAME;
-    if (level <= 17) return GAME_CONFIG.ENEMY_SCALING.LATE_GAME;
-    return GAME_CONFIG.ENEMY_SCALING.END_GAME;
-  }
-  
   // 檢查是否為事件關卡
   static isEventLevel(level) {
     return GAME_CONFIG.EVENT_LEVELS.includes(level);
@@ -219,63 +160,120 @@ export class GameConfigUtils {
   // 獲取金幣獎勵
   static getGoldReward(level) {
     if (level === GAME_CONFIG.TOTAL_LEVELS) {
-      return GAME_CONFIG.GOLD_REWARDS.FINAL_BOSS;
-    }
-    if (this.isBossLevel(level)) {
+      return GAME_CONFIG.GOLD_REWARDS.FINAL_LEVEL;
+    } else if (this.isBossLevel(level)) {
       return GAME_CONFIG.GOLD_REWARDS.BOSS_LEVEL;
+    } else {
+      return GAME_CONFIG.GOLD_REWARDS.NORMAL_LEVEL;
     }
-    return GAME_CONFIG.GOLD_REWARDS.NORMAL_LEVEL;
   }
   
-  // 獲取徽章權重配置
-  static getBadgeWeights(level) {
-    if (level <= 5) return GAME_CONFIG.BADGE_WEIGHTS.EARLY_GAME;
-    if (level <= 10) return GAME_CONFIG.BADGE_WEIGHTS.MID_GAME;
-    return GAME_CONFIG.BADGE_WEIGHTS.LATE_GAME;
+  // 計算利息
+  static calculateInterest(gold) {
+    const baseInterest = Math.floor(gold / 10) * GAME_CONFIG.GOLD_REWARDS.INTEREST_RATE;
+    return Math.min(baseInterest, GAME_CONFIG.GOLD_REWARDS.MAX_INTEREST);
   }
   
-  // 獲取重錘配置
-  static getHammerConfig(hasWeight = false, hasDuration = false) {
-    return {
-      procChance: hasWeight ? 
-        GAME_CONFIG.HAMMER_CONFIG.ENHANCED_PROC_CHANCE : 
-        GAME_CONFIG.HAMMER_CONFIG.BASE_PROC_CHANCE,
-      damageMultiplier: hasWeight ? 
-        GAME_CONFIG.HAMMER_CONFIG.ENHANCED_DAMAGE_MULTIPLIER : 
-        GAME_CONFIG.HAMMER_CONFIG.BASE_DAMAGE_MULTIPLIER,
-      stunDuration: hasDuration ? 
-        GAME_CONFIG.HAMMER_CONFIG.ENHANCED_STUN_DURATION : 
-        GAME_CONFIG.HAMMER_CONFIG.BASE_STUN_DURATION
-    };
+  // 獲取有效的戰鬥速度
+  static getValidBattleSpeed(speed) {
+    const validSpeeds = Object.values(GAME_CONFIG.BATTLE_SPEEDS);
+    return validSpeeds.includes(speed) ? speed : GAME_CONFIG.BATTLE_SPEEDS.NORMAL;
   }
   
-  // 計算敵人血量
-  static calculateEnemyHp(baseHp, level) {
-    const scaling = this.getEnemyScalingFactor(level);
-    const levelOffset = this.getLevelOffset(level);
-    return Math.floor(baseHp * (scaling.baseMultiplier + levelOffset * scaling.factor));
+  // 獲取重錘觸發機率
+  static getHammerProcChance(hasWeight = false) {
+    return hasWeight ? 
+      GAME_CONFIG.HAMMER_CONFIG.ENHANCED_PROC_CHANCE : 
+      GAME_CONFIG.HAMMER_CONFIG.BASE_PROC_CHANCE;
   }
   
-  // 獲取關卡偏移量
-  static getLevelOffset(level) {
-    if (level <= 3) return level - 1;
-    if (level <= 7) return level - 4;
-    if (level <= 12) return level - 8;
-    if (level <= 17) return level - 13;
-    return level - 18;
+  // 獲取重錘傷害倍率
+  static getHammerDamageMultiplier(hasWeight = false) {
+    return hasWeight ? 
+      GAME_CONFIG.HAMMER_CONFIG.ENHANCED_DAMAGE_MULTIPLIER : 
+      GAME_CONFIG.HAMMER_CONFIG.BASE_DAMAGE_MULTIPLIER;
+  }
+  
+  // 獲取重錘眩暈時間
+  static getHammerStunDuration(hasDuration = false) {
+    if (!GAME_CONFIG.HAMMER_CONFIG.STUN_ENABLED) return 0;
+    
+    return hasDuration ? 
+      GAME_CONFIG.HAMMER_CONFIG.ENHANCED_STUN_DURATION : 
+      GAME_CONFIG.HAMMER_CONFIG.BASE_STUN_DURATION;
+  }
+
+  // 獲取玩家基礎屬性
+  static getPlayerBaseStat(statName) {
+    return GAME_CONFIG.PLAYER_CONFIG.BASE_STATS[statName.toUpperCase()] || 0;
+  }
+
+  // 獲取敵人成長率
+  static getEnemyGrowthRate(level) {
+    if (level <= 3) return GAME_CONFIG.ENEMY_CONFIG.GROWTH_RATES.EARLY_GAME;
+    if (level <= 7) return GAME_CONFIG.ENEMY_CONFIG.GROWTH_RATES.MID_GAME;
+    if (level <= 12) return GAME_CONFIG.ENEMY_CONFIG.GROWTH_RATES.LATE_GAME;
+    return GAME_CONFIG.ENEMY_CONFIG.GROWTH_RATES.END_GAME;
+  }
+
+  // 獲取難度倍率
+  static getDifficultyMultiplier(level) {
+    if (level <= 5) return GAME_CONFIG.BALANCE_CONFIG.DIFFICULTY_CURVE.LEVEL_1_TO_5;
+    if (level <= 10) return GAME_CONFIG.BALANCE_CONFIG.DIFFICULTY_CURVE.LEVEL_6_TO_10;
+    if (level <= 15) return GAME_CONFIG.BALANCE_CONFIG.DIFFICULTY_CURVE.LEVEL_11_TO_15;
+    return GAME_CONFIG.BALANCE_CONFIG.DIFFICULTY_CURVE.LEVEL_16_TO_20;
+  }
+
+  // 獲取敵人縮放因子 (修復缺失的函數)
+  static getEnemyScalingFactor(level) {
+    // 更陡峭的等級成長曲線
+    let growthFactor;
+    if (level <= 3) {
+      growthFactor = 1 + (level - 1) * 0.06; // 前3關每級+6%
+    } else if (level <= 7) {
+      growthFactor = 1.16 + (level - 4) * 0.10; // 4-7關每級+10%
+    } else if (level <= 12) {
+      growthFactor = 1.64 + (level - 8) * 0.15; // 8-12關每級+15%
+    } else if (level <= 17) {
+      growthFactor = 2.54 + (level - 13) * 0.20; // 13-17關每級+20%
+    } else {
+      growthFactor = 3.79 + (level - 18) * 0.30; // 18-20關每級+30%
+    }
+    
+    return growthFactor;
+  }
+
+  // 獲取敵人數值成長 (配置化版本)
+  static calculateEnemyGrowth(baseValue, level, statType = 'hp') {
+    const scalingFactor = this.getEnemyScalingFactor(level);
+    
+    // 根據屬性類型調整成長率
+    switch(statType) {
+      case 'hp':
+        // 血量成長最顯著
+        return Math.floor(baseValue * scalingFactor);
+      case 'attack':
+        // 攻擊力成長較快
+        return Math.floor(baseValue * Math.pow(scalingFactor, 0.95));
+      case 'defense':
+        // 防禦力中等成長
+        return Math.floor(baseValue * Math.pow(scalingFactor, 0.7));
+      default:
+        return Math.floor(baseValue * scalingFactor);
+    }
   }
   
   // 驗證配置完整性
   static validateConfig() {
     const issues = [];
     
-    // 檢查基本數值
-    if (GAME_CONFIG.TOTAL_LEVELS <= 0) {
-      issues.push('TOTAL_LEVELS 必須大於 0');
+    // 檢查必要的配置項
+    if (!GAME_CONFIG.TOTAL_LEVELS || GAME_CONFIG.TOTAL_LEVELS < 1) {
+      issues.push('TOTAL_LEVELS must be a positive number');
     }
     
-    if (GAME_CONFIG.BATTLE_FPS <= 0) {
-      issues.push('BATTLE_FPS 必須大於 0');
+    if (!GAME_CONFIG.BATTLE_FPS || GAME_CONFIG.BATTLE_FPS < 1) {
+      issues.push('BATTLE_FPS must be a positive number');
     }
     
     // 檢查事件關卡是否在有效範圍內
@@ -283,22 +281,101 @@ export class GameConfigUtils {
       level => level < 1 || level > GAME_CONFIG.TOTAL_LEVELS
     );
     if (invalidEventLevels.length > 0) {
-      issues.push(`無效的事件關卡: ${invalidEventLevels.join(', ')}`);
+      issues.push(`Invalid event levels: ${invalidEventLevels.join(', ')}`);
+    }
+    
+    // 檢查Boss關卡是否在有效範圍內
+    const invalidBossLevels = GAME_CONFIG.BOSS_LEVELS.filter(
+      level => level < 1 || level > GAME_CONFIG.TOTAL_LEVELS
+    );
+    if (invalidBossLevels.length > 0) {
+      issues.push(`Invalid boss levels: ${invalidBossLevels.join(', ')}`);
+    }
+
+    // 檢查玩家配置
+    if (!GAME_CONFIG.PLAYER_CONFIG || !GAME_CONFIG.PLAYER_CONFIG.BASE_STATS) {
+      issues.push('PLAYER_CONFIG.BASE_STATS is required');
+    }
+
+    // 檢查敵人配置
+    if (!GAME_CONFIG.ENEMY_CONFIG || !GAME_CONFIG.ENEMY_CONFIG.GROWTH_RATES) {
+      issues.push('ENEMY_CONFIG.GROWTH_RATES is required');
     }
     
     if (issues.length > 0) {
-      console.warn('⚠️ 遊戲配置問題:', issues);
+      console.error('❌ 遊戲配置驗證失敗:', issues);
       return false;
     }
     
     console.log('✅ 遊戲配置驗證通過');
     return true;
   }
+  
+  // 獲取配置摘要（用於調試）
+  static getConfigSummary() {
+    return {
+      levels: GAME_CONFIG.TOTAL_LEVELS,
+      battleFPS: GAME_CONFIG.BATTLE_FPS,
+      eventLevels: GAME_CONFIG.EVENT_LEVELS,
+      bossLevels: GAME_CONFIG.BOSS_LEVELS,
+      hammerStunEnabled: GAME_CONFIG.HAMMER_CONFIG.STUN_ENABLED,
+      debugMode: GAME_CONFIG.DEBUG.ENABLED,
+      playerBaseHP: GAME_CONFIG.PLAYER_CONFIG.BASE_STATS.HP,
+      playerBaseAttack: GAME_CONFIG.PLAYER_CONFIG.BASE_STATS.ATTACK
+    };
+  }
 }
 
-// 🔍 在開發模式下驗證配置
-if (GAME_CONFIG.DEBUG.ENABLED) {
-  GameConfigUtils.validateConfig();
+// 🔧 配置預設值檢查
+export function initializeGameConfig() {
+  console.log('🔧 初始化遊戲配置...');
+  
+  // 驗證配置
+  const isValid = GameConfigUtils.validateConfig();
+  
+  if (isValid) {
+    console.log('📊 配置摘要:', GameConfigUtils.getConfigSummary());
+    
+    // 輸出重要設定狀態
+    console.log(`🔨 重錘眩暈: ${GAME_CONFIG.HAMMER_CONFIG.STUN_ENABLED ? '啟用' : '禁用'}`);
+    console.log(`🔧 調試模式: ${GAME_CONFIG.DEBUG.ENABLED ? '啟用' : '禁用'}`);
+    console.log(`⏱️ 戰鬥結果顯示: ${GAME_CONFIG.BATTLE_RESULT_DISPLAY_TIME === 0 ? '點擊關閉' : GAME_CONFIG.BATTLE_RESULT_DISPLAY_TIME + 'ms'}`);
+    console.log(`👤 玩家基礎血量: ${GAME_CONFIG.PLAYER_CONFIG.BASE_STATS.HP}`);
+    console.log(`⚔️ 玩家基礎攻擊: ${GAME_CONFIG.PLAYER_CONFIG.BASE_STATS.ATTACK}`);
+    console.log(`⚡ 戰鬥FPS: ${GAME_CONFIG.BATTLE_FPS}`);
+  }
+  
+  return isValid;
 }
 
-console.log('⚙️ 遊戲配置已載入');
+// 🎯 配置熱更新功能（開發用）
+export function updateGameConfig(path, value) {
+  if (GAME_CONFIG.DEBUG.ENABLED) {
+    const keys = path.split('.');
+    let current = GAME_CONFIG;
+    
+    // 導航到目標位置
+    for (let i = 0; i < keys.length - 1; i++) {
+      if (!current[keys[i]]) {
+        console.error(`❌ 配置路徑不存在: ${path}`);
+        return false;
+      }
+      current = current[keys[i]];
+    }
+    
+    const lastKey = keys[keys.length - 1];
+    const oldValue = current[lastKey];
+    current[lastKey] = value;
+    
+    console.log(`🔧 配置更新: ${path} = ${oldValue} → ${value}`);
+    return true;
+  } else {
+    console.warn('⚠️ 配置熱更新僅在調試模式下可用');
+    return false;
+  }
+}
+
+// 自動初始化配置
+setTimeout(() => {
+  initializeGameConfig();
+}, 50);

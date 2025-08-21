@@ -421,22 +421,23 @@ class GameManager {
     this.showLevelUpChoice(0);
   }
 
+  // 同時修復 endGame 方法，移除自動計時器
   endGame() {
     // 使用配置的鑽石計算
-    const diamonds = Math.floor(this.currentLevel / 5) * GAME_CONFIG.DIAMOND_REWARDS.PER_5_LEVELS + 
-      (this.currentLevel >= GAME_CONFIG.TOTAL_LEVELS ? GAME_CONFIG.DIAMOND_REWARDS.COMPLETION_BONUS : 0);
+    const diamonds = Math.floor(this.currentLevel / 5) + 
+      (this.currentLevel >= 20 ? 5 : 0);
     
     console.log(`🎯 遊戲結束！到達關卡: ${this.currentLevel}, 獲得鑽石: ${diamonds}`);
     this.diamonds += diamonds;
     
     this.showGameOverScreen();
     
-    // 8秒後重置遊戲
-    setTimeout(() => {
-      this.resetGame();
-    }, 8000);
+    // 🔧 移除自動重置計時器
+    // setTimeout(() => { this.resetGame(); }, 8000); // 刪除這行
   }
 
+
+  // GameManager 的修復部分 - 遊戲結束畫面
   showGameOverScreen() {
     const gameOverDiv = document.createElement('div');
     gameOverDiv.style.cssText = `
@@ -449,49 +450,74 @@ class GameManager {
       display: flex;
       justify-content: center;
       align-items: center;
-      z-index: ${GAME_CONFIG.UI_CONFIG.Z_INDEX.GAME_OVER};
+      z-index: 2500;
+      cursor: pointer;
     `;
 
-    const isVictory = this.currentLevel > GAME_CONFIG.TOTAL_LEVELS;
+    const isVictory = this.currentLevel > 20;
     const badgeCount = this.player.badges.length;
     
-    gameOverDiv.innerHTML = `
-      <div style="
-        background: linear-gradient(135deg, ${isVictory ? GAME_CONFIG.UI_CONFIG.COLORS.SUCCESS + ', #27AE60' : GAME_CONFIG.UI_CONFIG.COLORS.ERROR + ', #C0392B'});
-        padding: 40px;
-        border-radius: 20px;
-        text-align: center;
-        color: white;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-      ">
-        <div style="font-size: 48px; margin-bottom: 20px;">
-          ${isVictory ? '🏆' : '💀'}
+    const contentDiv = document.createElement('div');
+    contentDiv.style.cssText = `
+      background: linear-gradient(135deg, ${isVictory ? '#2ECC71, #27AE60' : '#E74C3C, #C0392B'});
+      padding: 40px;
+      border-radius: 20px;
+      text-align: center;
+      color: white;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      cursor: default;
+      position: relative;
+    `;
+
+    contentDiv.innerHTML = `
+      <div style="font-size: 48px; margin-bottom: 20px;">
+        ${isVictory ? '🏆' : '💀'}
+      </div>
+      <h2 style="font-size: 32px; margin-bottom: 15px;">
+        ${isVictory ? '重錘之王！' : '征程結束'}
+      </h2>
+      <p style="font-size: 20px; margin-bottom: 20px;">
+        ${isVictory ? '你用重錘征服了所有敵人！' : `你在第 ${this.currentLevel} 關倒下了`}
+      </p>
+      <div style="font-size: 16px; opacity: 0.9; margin-bottom: 20px;">
+        <p>💎 鑽石: ${Math.floor(this.currentLevel / 5)}</p>
+        <p>🎖️ 徽章: ${badgeCount}</p>
+        <p>💰 金幣: ${this.gold}</p>
+      </div>
+      
+      <div style="background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 10px; margin-top: 20px;">
+        <div style="color: #ffd700; font-size: 14px; font-weight: bold; margin-bottom: 5px;">
+          💡 操作提示
         </div>
-        <h2 style="font-size: 32px; margin-bottom: 15px;">
-          ${isVictory ? '重錘之王！' : '征程結束'}
-        </h2>
-        <p style="font-size: 20px; margin-bottom: 20px;">
-          ${isVictory ? '你用重錘征服了所有敵人！' : `你在第 ${this.currentLevel} 關倒下了`}
-        </p>
-        <div style="font-size: 16px; opacity: 0.9; margin-bottom: 20px;">
-          <p>💎 鑽石: ${Math.floor(this.currentLevel / 5) * GAME_CONFIG.DIAMOND_REWARDS.PER_5_LEVELS}</p>
-          <p>🎖️ 徽章: ${badgeCount}</p>
-          <p>💰 金幣: ${this.gold}</p>
+        <div style="font-size: 13px; opacity: 0.9;">
+          點擊畫面任意位置重新開始遊戲
         </div>
-        <p style="font-size: 14px; margin-top: 20px; opacity: 0.7;">
-          遊戲將在幾秒後重新開始...
-        </p>
       </div>
     `;
 
-    document.body.appendChild(gameOverDiv);
-
-    // 8秒後移除
-    setTimeout(() => {
-      if (gameOverDiv.parentNode) {
+    gameOverDiv.appendChild(contentDiv);
+    
+    // 🔧 修復：全螢幕點擊重新開始事件
+    gameOverDiv.addEventListener('click', (e) => {
+      // 如果點擊的是背景區域或內容區域，都重新開始
+      if (e.target === gameOverDiv || e.target === contentDiv) {
         gameOverDiv.remove();
+        this.resetGame(); // 重新開始遊戲
       }
-    }, 7500);
+    });
+    
+    // 🔧 修復：內容區域點擊也重新開始
+    contentDiv.addEventListener('click', (e) => {
+      // 阻止事件冒泡，但仍然重新開始
+      e.stopPropagation();
+      gameOverDiv.remove();
+      this.resetGame();
+    });
+
+    document.body.appendChild(gameOverDiv);
+    
+    // 🔧 完全移除自動重新開始的計時器
+    // 不設置任何 setTimeout 自動重新開始
   }
 
   resetGame() {
@@ -733,22 +759,35 @@ class EnhancedUIManager {
       : '<div style="opacity: 0.6; font-size: 13px;">暫無效果</div>';
   }
 
-  showBattleResults(battleStats, player, displayTime = 3000) {
+  showBattleResults(battleStats, player, displayTime = 0) {
     const resultsDiv = document.createElement('div');
     resultsDiv.style.cssText = `
       position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1500;
+      cursor: pointer;
+    `;
+
+    const contentDiv = document.createElement('div');
+    contentDiv.style.cssText = `
       background: linear-gradient(135deg, #2a2a40 0%, #1a1a2e 100%);
-      border: 2px solid ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY};
+      border: 2px solid #4ecdc4;
       border-radius: 20px;
       padding: 30px;
       color: white;
       min-width: 500px;
       text-align: center;
-      z-index: ${GAME_CONFIG.UI_CONFIG.Z_INDEX.BATTLE_RESULTS};
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      cursor: default;
+      position: relative;
     `;
 
     const battleDuration = (Date.now() - battleStats.startTime) / 1000;
@@ -761,55 +800,50 @@ class EnhancedUIManager {
     const hammerRate = battleStats.playerAttackCount > 0 ? 
       (battleStats.hammerProcCount / battleStats.playerAttackCount * 100) : 0;
 
-    resultsDiv.innerHTML = `
-      <h2 style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY}; margin-bottom: 20px;">⚔️ 戰鬥總結</h2>
+    contentDiv.innerHTML = `
+      <h2 style="color: #4ecdc4; margin-bottom: 20px;">⚔️ 戰鬥總結</h2>
       <div style="text-align: left; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 15px;">
-        <div>⏱️ 戰鬥時長: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; font-weight: bold;">${battleDuration.toFixed(1)}秒</span></div>
-        <div>❤️ 剩餘血量: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.SECONDARY}; font-weight: bold;">${player.hp.toFixed(1)}/${player.maxHp}</span></div>
-        <div>🗡️ 攻擊次數: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; font-weight: bold;">${battleStats.playerAttackCount}</span></div>
-        <div>📊 平均傷害: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; font-weight: bold;">${avgDamage.toFixed(1)}</span></div>
-        <div>💥 暴擊率: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.SECONDARY}; font-weight: bold;">${critRate.toFixed(1)}%</span></div>
-        <div>🔨 重錘率: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.SECONDARY}; font-weight: bold;">${hammerRate.toFixed(1)}%</span></div>
+        <div>⏱️ 戰鬥時長: <span style="color: #ffd700; font-weight: bold;">${battleDuration.toFixed(1)}秒</span></div>
+        <div>❤️ 剩餘血量: <span style="color: #ff6b6b; font-weight: bold;">${player.hp.toFixed(1)}/${player.maxHp}</span></div>
+        <div>🗡️ 攻擊次數: <span style="color: #ffd700; font-weight: bold;">${battleStats.playerAttackCount}</span></div>
+        <div>📊 平均傷害: <span style="color: #ffd700; font-weight: bold;">${avgDamage.toFixed(1)}</span></div>
+        <div>💥 暴擊率: <span style="color: #ff6b6b; font-weight: bold;">${critRate.toFixed(1)}%</span></div>
+        <div>🔨 重錘率: <span style="color: #ff6b6b; font-weight: bold;">${hammerRate.toFixed(1)}%</span></div>
         <div>🛡️ 受擊次數: <span style="color: #ccc; font-weight: bold;">${battleStats.enemyAttackCount}</span></div>
         <div>📉 平均受傷: <span style="color: #ccc; font-weight: bold;">${avgDamageTaken.toFixed(1)}</span></div>
       </div>
-      <button onclick="this.parentElement.remove()" style="
-        background: ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY};
-        color: white;
-        border: none;
-        padding: 12px 25px;
-        border-radius: 10px;
-        cursor: pointer;
-        font-size: 16px;
-        font-weight: bold;
-        transition: background 0.3s ease;
-      " 
-      onmouseover="this.style.background='#45b7b8'" 
-      onmouseout="this.style.background='${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY}'">繼續 (${(displayTime/1000).toFixed(0)}秒後自動關閉)</button>
+      
+      <div style="background: rgba(78, 205, 196, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 3px solid #4ecdc4;">
+        <div style="color: #4ecdc4; font-size: 14px; font-weight: bold; margin-bottom: 5px;">
+          💡 操作提示
+        </div>
+        <div style="color: #ccc; font-size: 13px;">
+          點擊畫面任意位置繼續下一關
+        </div>
+      </div>
     `;
 
-    document.body.appendChild(resultsDiv);
-
-    // 倒數計時
-    let timeLeft = displayTime / 1000;
-    const button = resultsDiv.querySelector('button');
-    const countdown = setInterval(() => {
-      timeLeft--;
-      if (timeLeft > 0) {
-        button.textContent = `繼續 (${timeLeft}秒後自動關閉)`;
-      } else {
-        clearInterval(countdown);
-        button.textContent = '繼續';
-      }
-    }, 1000);
-
-    // 自動關閉
-    setTimeout(() => {
-      if (resultsDiv.parentNode) {
+    resultsDiv.appendChild(contentDiv);
+    
+    // 🔧 修復：全螢幕點擊關閉事件
+    resultsDiv.addEventListener('click', (e) => {
+      // 如果點擊的是背景區域，關閉面板
+      if (e.target === resultsDiv) {
         resultsDiv.remove();
       }
-      clearInterval(countdown);
-    }, displayTime);
+    });
+    
+    // 🔧 修復：內容區域點擊也關閉
+    contentDiv.addEventListener('click', (e) => {
+      // 阻止事件冒泡，但仍然關閉面板
+      e.stopPropagation();
+      resultsDiv.remove();
+    });
+
+    document.body.appendChild(resultsDiv);
+    
+    // 🔧 移除所有自動關閉邏輯
+    // 不設置任何 setTimeout 自動關閉
   }
 }
 
