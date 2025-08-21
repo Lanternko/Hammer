@@ -163,7 +163,6 @@ class BattleSystem {
     this.isActive = true;
     this.battleStats.startTime = Date.now();
     this.lastFrameTime = performance.now();
-    this.lastUIUpdate = performance.now();
     
     // 添加速度控制按鈕（包含10倍速）
     this.createSpeedControlUI();
@@ -171,6 +170,7 @@ class BattleSystem {
   }
 
   createSpeedControlUI() {
+    // 檢查是否已存在
     if (document.getElementById('speedControl')) return;
     
     const speedControl = document.createElement('div');
@@ -206,6 +206,7 @@ class BattleSystem {
       this.animationId = null;
     }
     
+    // 清理速度控制UI
     const speedControl = document.getElementById('speedControl');
     if (speedControl) speedControl.remove();
     window.gameManager = null;
@@ -217,6 +218,7 @@ class BattleSystem {
     const currentTime = performance.now();
     const realDeltaTime = (currentTime - this.lastFrameTime) / 1000;
     
+    // 根據戰鬥速度調整更新頻率
     if (realDeltaTime >= this.deltaTime) {
       this.tick();
       this.lastFrameTime = currentTime;
@@ -228,25 +230,30 @@ class BattleSystem {
   tick() {
     if (!this.isActive) return;
 
+    // 更新玩家臨時效果
     this.player.updateTempEffects(this.deltaTime);
 
     // 增加攻擊幀計數
     this.player.currentFrame = Math.min(this.player.attackFrame, this.player.currentFrame + 1);
     
+    // 敵人只有在非眩暈狀態下才增加攻擊幀
     if (!this.enemy.isStunned) {
       this.enemy.currentFrame = Math.min(this.enemy.attackFrame, this.enemy.currentFrame + 1);
     }
 
+    // 玩家攻擊檢查
     if (this.player.currentFrame >= this.player.attackFrame) {
       this.processPlayerAttack();
       this.player.currentFrame = 0;
     }
 
+    // 敵人攻擊檢查
     if (this.enemy.currentFrame >= this.enemy.attackFrame && this.isActive && !this.enemy.isStunned) {
       this.processEnemyAttack();
       this.enemy.currentFrame = 0;
     }
 
+    // 更新敵人眩暈狀態
     if (this.enemy.isStunned && this.enemy.stunDuration > 0) {
       this.enemy.stunDuration -= this.deltaTime;
       if (this.enemy.stunDuration <= 0) {
@@ -271,6 +278,7 @@ class BattleSystem {
     const attackResult = this.player.performAttack();
     const { damage, isCrit, isHammerProc } = attackResult;
     
+    // 更新統計
     this.battleStats.playerAttackCount++;
     this.battleStats.playerTotalDamage += damage;
     if (isCrit) this.battleStats.critCount++;
@@ -292,6 +300,7 @@ class BattleSystem {
       console.log(`😵 敵人被重錘眩暈 ${stunDuration} 秒！`);
     }
     
+    // 檢查敵人是否死亡
     if (this.enemy.hp <= 0) {
       console.log('🏆 敵人被擊敗！');
       this.endBattle(true);
@@ -302,10 +311,12 @@ class BattleSystem {
   processEnemyAttack() {
     const rawDmg = this.enemy.attack;
     
+    // 計算傷害：先護甲百分比減傷，再固定減傷
     const armorReduction = rawDmg / (1 + this.player.getEffectiveArmor() / 100);
     const finalDmg = Math.max(1, armorReduction - this.player.flatReduction);
     this.player.hp = Math.max(0, this.player.hp - finalDmg);
     
+    // 更新統計
     this.battleStats.enemyAttackCount++;
     this.battleStats.playerDamageReceived += finalDmg;
     this.battleStats.playerDamageDealtCount++;
@@ -314,8 +325,10 @@ class BattleSystem {
     this.showDamageNumber(finalDmg, false, true);
     this.showFloatingDamage(finalDmg, true); // 新增浮動傷害顯示
     
+    // 檢查反甲徽章效果
     this.checkReflectArmor();
     
+    // 檢查玩家是否死亡
     if (this.player.hp <= 0) {
       console.log('💀 玩家被擊敗！');
       this.endBattle(false);
@@ -447,6 +460,7 @@ class BattleSystem {
       enemyName.textContent = nameText;
     }
 
+    // 更新玩家血條
     const heroHealthFill = document.querySelector('.hero .health-fill');
     const heroHealthText = document.querySelector('.hero .health-text');
     if (heroHealthFill && heroHealthText) {
@@ -455,6 +469,7 @@ class BattleSystem {
       heroHealthText.textContent = `${Math.round(this.player.hp)} / ${this.player.maxHp}`;
     }
 
+    // 更新敵人血條
     const enemyHealthFill = document.querySelector('.enemy .health-fill');
     const enemyHealthText = document.querySelector('.enemy .health-text');
     if (enemyHealthFill && enemyHealthText && this.enemy) {
@@ -497,8 +512,10 @@ class BattleSystem {
       }
     }
 
-    // 🔧 修復: 避免過度更新速度控制按鈕，減少閃爍
-    this.updateSpeedControlButtonsThrottled();
+    // 更新速度控制按鈕顏色
+    this.updateSpeedControlButtons();
+
+    // 更新GameManager的統計顯示
     this.gameManager.updatePlayerStats();
   }
 
