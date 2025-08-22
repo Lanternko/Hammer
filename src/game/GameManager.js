@@ -1,9 +1,9 @@
-// src/game/GameManager.js - 配置化版本
+// src/game/GameManager.js - 整合三參數與戰力系統版本
 import Player from './Player.js';
 import Enemy from './Enemy.js';
 import BattleSystem from '../systems/BattleSystem.js';
 import EventSystem from '../systems/EventSystem.js';
-import { selectEnemyType } from '../data/Enemies.js';
+import { selectEnemyType, getEnemyStats } from '../data/Enemies.js';
 import { generateUpgradeOptions, applyUpgradeToPlayer } from '../data/upgradeRewards.js';
 import { GAME_CONFIG, GameConfigUtils } from '../config/GameConfig.js';
 
@@ -32,6 +32,11 @@ class GameManager {
 
   startGame() {
     console.log('🎮 遊戲啟動 - 準備第1關');
+    
+    // 🎯 顯示玩家初始戰力
+    const playerPower = GameConfigUtils.calculatePlayerCombatPower(this.player);
+    console.log(`👤 玩家初始戰力: ${playerPower.displayPower} (原始: ${playerPower.rawPower.toFixed(0)})`);
+    
     this.updateUI();
     this.nextLevel();
   }
@@ -49,12 +54,24 @@ class GameManager {
       return;
     }
 
-    // 使用新的敵人選擇系統
+    // 🎯 使用新的三參數敵人選擇系統
     const enemyType = selectEnemyType(this.currentLevel);
     this.enemy = new Enemy(this.currentLevel, enemyType);
     
+    // 🎯 顯示敵人戰力信息
+    const enemyPower = GameConfigUtils.calculateEnemyCombatPower(this.enemy);
+    const targetPower = GameConfigUtils.getTargetCombatPower(this.currentLevel);
+    const targetDisplay = GameConfigUtils.formatCombatPowerForDisplay(targetPower);
+    
     console.log(`⚔️ 關卡 ${this.currentLevel}: 遭遇 ${this.enemy.getDisplayName()}`);
-    console.log(`📊 敵人屬性: HP ${this.enemy.hp}/${this.enemy.maxHp}, 攻擊 ${this.enemy.attack}, 攻速 ${this.enemy.attackSpeed}, 防禦 ${this.enemy.defense}`);
+    console.log(`📊 敵人屬性: HP ${this.enemy.hp}/${this.enemy.maxHp}, 攻擊 ${this.enemy.attack}, 攻速 ${this.enemy.attackSpeed}, 防禦 ${this.enemy.armor || this.enemy.defense || 0}`);
+    console.log(`🎯 敵人戰力: ${enemyPower.displayPower} (目標: ${targetDisplay})`);
+    
+    // 🎯 顯示平衡信息（如果存在）
+    if (this.enemy.balanceInfo) {
+      const info = this.enemy.balanceInfo;
+      console.log(`⚖️ 平衡信息: HP×${info.hpMultiplier}, 攻速×${info.speedMultiplier}, 強度×${info.strengthMultiplier}, 誤差: ${(info.error * 100).toFixed(1)}%`);
+    }
     
     this.updateUI();
     this.updateEnemyDisplay();
@@ -72,7 +89,6 @@ class GameManager {
 
   // 設定戰鬥速度的方法，供BattleSystem回調
   setBattleSpeed(speed) {
-    // 驗證速度是否在允許範圍內
     const validSpeeds = Object.values(GAME_CONFIG.BATTLE_SPEEDS);
     if (!validSpeeds.includes(speed)) {
       console.warn(`⚠️ 無效的戰鬥速度: ${speed}, 使用預設值`);
@@ -89,6 +105,18 @@ class GameManager {
   endBattle(won, battleStats = null) {
     console.log(`⚔️ 戰鬥結束 - ${won ? '✅ 勝利' : '❌ 失敗'}`);
     
+    // 🎯 顯示戰力對比結果
+    if (won && battleStats) {
+      const playerPower = GameConfigUtils.calculatePlayerCombatPower(this.player);
+      const enemyPower = GameConfigUtils.calculateEnemyCombatPower(this.enemy);
+      console.log(`🏆 戰力對比結果: 玩家 ${playerPower.displayPower} 擊敗 敵人 ${enemyPower.displayPower}`);
+      
+      // 戰鬥效率分析
+      const battleDuration = (Date.now() - battleStats.startTime) / 1000;
+      const efficiency = (parseFloat(enemyPower.rawPower) / parseFloat(playerPower.rawPower)) / battleDuration;
+      console.log(`📈 戰鬥效率: ${efficiency.toFixed(2)} (戰力比/秒)`);
+    }
+    
     // 使用配置的戰鬥結果顯示時間
     if (battleStats && this.enhancedUI) {
       this.enhancedUI.showBattleResults(battleStats, this.player, GAME_CONFIG.BATTLE_RESULT_DISPLAY_TIME);
@@ -99,7 +127,7 @@ class GameManager {
       return this.endGame();
     }
 
-    // 獲得金幣獎勵 - 使用配置系統
+    // 獲得金幣獎勵
     const goldReward = GameConfigUtils.getGoldReward(this.currentLevel);
     this.gold += goldReward;
     console.log(`💰 關卡 ${this.currentLevel} 完成！獲得金幣: ${goldReward}，總金幣: ${this.gold}`);
@@ -111,11 +139,10 @@ class GameManager {
     // 使用配置的延遲時間
     setTimeout(() => {
       this.showLevelUpChoice(goldReward);
-    }, GAME_CONFIG.BATTLE_RESULT_DISPLAY_TIME / 3); // 1秒延遲
+    }, GAME_CONFIG.BATTLE_RESULT_DISPLAY_TIME / 3);
   }
 
   showLevelUpChoice(goldReward) {
-    // 使用新的升級獎勵系統
     const upgradeOptions = generateUpgradeOptions(this.currentLevel);
     
     // 創建升級選擇界面
@@ -149,9 +176,10 @@ class GameManager {
         <h2 style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY}; margin-bottom: 10px; font-size: 24px;">
           🎉 關卡 ${this.currentLevel} 完成！
         </h2>
-        <p style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; margin-bottom: 20px; font-size: 18px;">
+        <p style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; margin-bottom: 15px; font-size: 18px;">
           💰 +${goldReward} 金幣 | 💚 血量回滿
         </p>
+        ${this.getPlayerPowerDisplayHTML()}
         <h3 style="color: #fff; margin-bottom: 20px;">選擇一個升級獎勵（三選一）：</h3>
         <div style="display: flex; gap: 20px; justify-content: center; margin-bottom: 20px;">
           ${upgradeOptions.map((option, index) => `
@@ -200,7 +228,16 @@ class GameManager {
     // 綁定點擊事件
     document.querySelectorAll('.upgrade-option').forEach((option, index) => {
       option.addEventListener('click', () => {
+        // 🎯 升級前後戰力對比
+        const beforePower = GameConfigUtils.calculatePlayerCombatPower(this.player);
+        console.log(`📊 升級前戰力: ${beforePower.displayPower}`);
+        
         applyUpgradeToPlayer(this.player, upgradeOptions[index]);
+        
+        const afterPower = GameConfigUtils.calculatePlayerCombatPower(this.player);
+        const improvement = ((afterPower.rawPower / beforePower.rawPower - 1) * 100).toFixed(1);
+        console.log(`📈 升級後戰力: ${afterPower.displayPower} (+${improvement}%)`);
+        
         upgradeDiv.remove();
         
         // 檢查是否該給徽章
@@ -223,6 +260,27 @@ class GameManager {
         option.style.boxShadow = 'none';
       });
     });
+  }
+
+  // 🎯 新增：玩家戰力顯示
+  getPlayerPowerDisplayHTML() {
+    const playerPower = GameConfigUtils.calculatePlayerCombatPower(this.player);
+    const nextLevelTarget = GameConfigUtils.getTargetCombatPower(this.currentLevel + 1);
+    const nextLevelDisplay = GameConfigUtils.formatCombatPowerForDisplay(nextLevelTarget);
+    
+    return `
+      <div style="background: rgba(78, 205, 196, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+        <div style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY}; font-size: 14px; font-weight: bold; margin-bottom: 8px;">
+          ⚔️ 當前戰力狀況
+        </div>
+        <div style="color: white; font-size: 16px; margin-bottom: 5px;">
+          👤 您的戰力: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.GOLD}; font-weight: bold;">${playerPower.displayPower}</span>
+        </div>
+        <div style="color: #ccc; font-size: 13px;">
+          下關預期敵人戰力: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.SECONDARY}; font-weight: bold;">${nextLevelDisplay}</span>
+        </div>
+      </div>
+    `;
   }
 
   getUpgradeEffectDescription(upgrade) {
@@ -283,11 +341,10 @@ class GameManager {
   }
 
   giveStartingBadge() {
-    // 開局給重錘徽章 - 移除眩暈描述
+    // 開局給重錘徽章
     const hammerBadge = {
       key: 'hammerMastery',
       name: '重錘精通',
-      // 🔧 更新描述：移除眩暈效果
       description: `每次攻擊有${(GAME_CONFIG.HAMMER_CONFIG.BASE_PROC_CHANCE * 100).toFixed(0)}%機率造成${(GAME_CONFIG.HAMMER_CONFIG.BASE_DAMAGE_MULTIPLIER * 100).toFixed(0)}%傷害`,
       icon: '🔨',
       effect: { hammerMastery: true },
@@ -421,23 +478,22 @@ class GameManager {
     this.showLevelUpChoice(0);
   }
 
-  // 同時修復 endGame 方法，移除自動計時器
   endGame() {
     // 使用配置的鑽石計算
     const diamonds = Math.floor(this.currentLevel / 5) + 
       (this.currentLevel >= 20 ? 5 : 0);
     
     console.log(`🎯 遊戲結束！到達關卡: ${this.currentLevel}, 獲得鑽石: ${diamonds}`);
+    
+    // 🎯 顯示最終戰力統計
+    const finalPower = GameConfigUtils.calculatePlayerCombatPower(this.player);
+    console.log(`🏆 最終戰力: ${finalPower.displayPower} (原始: ${finalPower.rawPower.toFixed(0)})`);
+    
     this.diamonds += diamonds;
     
     this.showGameOverScreen();
-    
-    // 🔧 移除自動重置計時器
-    // setTimeout(() => { this.resetGame(); }, 8000); // 刪除這行
   }
 
-
-  // GameManager 的修復部分 - 遊戲結束畫面
   showGameOverScreen() {
     const gameOverDiv = document.createElement('div');
     gameOverDiv.style.cssText = `
@@ -456,6 +512,7 @@ class GameManager {
 
     const isVictory = this.currentLevel > 20;
     const badgeCount = this.player.badges.length;
+    const finalPower = GameConfigUtils.calculatePlayerCombatPower(this.player);
     
     const contentDiv = document.createElement('div');
     contentDiv.style.cssText = `
@@ -480,6 +537,7 @@ class GameManager {
         ${isVictory ? '你用重錘征服了所有敵人！' : `你在第 ${this.currentLevel} 關倒下了`}
       </p>
       <div style="font-size: 16px; opacity: 0.9; margin-bottom: 20px;">
+        <p>⚔️ 最終戰力: ${finalPower.displayPower}</p>
         <p>💎 鑽石: ${Math.floor(this.currentLevel / 5)}</p>
         <p>🎖️ 徽章: ${badgeCount}</p>
         <p>💰 金幣: ${this.gold}</p>
@@ -497,31 +555,31 @@ class GameManager {
 
     gameOverDiv.appendChild(contentDiv);
     
-    // 🔧 修復：全螢幕點擊重新開始事件
+    // 點擊重新開始事件
     gameOverDiv.addEventListener('click', (e) => {
-      // 如果點擊的是背景區域或內容區域，都重新開始
       if (e.target === gameOverDiv || e.target === contentDiv) {
         gameOverDiv.remove();
-        this.resetGame(); // 重新開始遊戲
+        this.resetGame();
       }
     });
     
-    // 🔧 修復：內容區域點擊也重新開始
     contentDiv.addEventListener('click', (e) => {
-      // 阻止事件冒泡，但仍然重新開始
       e.stopPropagation();
       gameOverDiv.remove();
       this.resetGame();
     });
 
     document.body.appendChild(gameOverDiv);
-    
-    // 🔧 完全移除自動重新開始的計時器
-    // 不設置任何 setTimeout 自動重新開始
   }
 
   resetGame() {
     console.log('🔄 重新開始遊戲...');
+    
+    // 🎯 清理舊遊戲狀態
+    if (this.battleSystem) {
+      this.battleSystem.cleanup();
+    }
+    
     this.currentLevel = 1;
     this.player = new Player();
     this.enemy = null;
@@ -553,10 +611,11 @@ class GameManager {
   updateEnemyDisplay() {
     if (!this.enemy) return;
 
-    // 更新敵人名稱（包含攻擊力）
+    // 更新敵人名稱（包含攻擊力和戰力）
     const enemyName = document.querySelector('.enemy .character-name');
     if (enemyName) {
-      enemyName.textContent = `${this.enemy.emoji} ${this.enemy.getTypeName()} 攻擊${this.enemy.attack}`;
+      const enemyPower = GameConfigUtils.calculateEnemyCombatPower(this.enemy);
+      enemyName.textContent = `${this.enemy.emoji} ${this.enemy.getTypeName()} 攻擊${this.enemy.attack} (戰力:${enemyPower.displayPower})`;
     }
 
     // 更新敵人血量顯示
@@ -579,10 +638,11 @@ class GameManager {
   }
 
   updatePlayerStats() {
-    // 更新角色名稱顯示血量
+    // 🎯 更新角色名稱顯示血量和戰力
     const heroName = document.querySelector('.hero .character-name');
     if (heroName) {
-      heroName.textContent = `🔨 重錘英雄 (${Math.round(this.player.hp)}/${this.player.maxHp})`;
+      const playerPower = GameConfigUtils.calculatePlayerCombatPower(this.player);
+      heroName.textContent = `🔨 重錘英雄 (${Math.round(this.player.hp)}/${this.player.maxHp}) 戰力:${playerPower.displayPower}`;
     }
 
     // 更新統計面板
@@ -610,7 +670,7 @@ class GameManager {
   }
 }
 
-// 增強的UI管理器類保持不變
+// 增強的UI管理器類（與戰力系統整合）
 class EnhancedUIManager {
   constructor() {
     this.createBuffDisplayArea();
@@ -681,7 +741,7 @@ class EnhancedUIManager {
             border-radius: 10px;
             font-size: 13px;
             line-height: 1.5;
-            width: 250px;
+            width: 300px;
             z-index: 1000;
             border: 2px solid ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY};
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.8);
@@ -704,8 +764,9 @@ class EnhancedUIManager {
               • 200護甲 = 66.7%減傷
             </div>
             <div style="background: rgba(78, 205, 196, 0.2); padding: 8px; border-radius: 6px; margin-top: 10px;">
-              <strong style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY};">傷害計算順序：</strong><br>
-              原始傷害 → 護甲減傷 → 固定減傷 → 最終傷害
+              <strong style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.PRIMARY};">戰力計算：</strong><br>
+              戰力 = √(DPS × EHP)<br>
+              EHP = 血量 ÷ (1 - 減傷率)
             </div>
           `;
           
@@ -731,8 +792,12 @@ class EnhancedUIManager {
 
     const buffs = [];
     
+    // 🎯 戰力信息
+    const playerPower = GameConfigUtils.calculatePlayerCombatPower(player);
+    buffs.push(`⚔️ 當前戰力: ${playerPower.displayPower} (DPS:${playerPower.dps}, EHP:${playerPower.ehp})`);
+    
     // 重錘效果
-    if (player.hammerEffects.mastery) buffs.push(`🔨 重錘精通 (${(GAME_CONFIG.HAMMER_CONFIG.BASE_PROC_CHANCE * 100).toFixed(0)}%觸發，${(GAME_CONFIG.HAMMER_CONFIG.BASE_DAMAGE_MULTIPLIER * 100).toFixed(0)}%傷害，眩暈${GAME_CONFIG.HAMMER_CONFIG.BASE_STUN_DURATION}秒)`);
+    if (player.hammerEffects.mastery) buffs.push(`🔨 重錘精通 (${(GAME_CONFIG.HAMMER_CONFIG.BASE_PROC_CHANCE * 100).toFixed(0)}%觸發，${(GAME_CONFIG.HAMMER_CONFIG.BASE_DAMAGE_MULTIPLIER * 100).toFixed(0)}%傷害)`);
     if (player.hammerEffects.storm) buffs.push('🌪️ 重錘風暴 (重錘觸發時下次必暴擊)');
     if (player.hammerEffects.shield) buffs.push(`🛡️ 重錘護盾 (重錘觸發時+${GAME_CONFIG.HAMMER_CONFIG.EFFECTS.SHIELD_ARMOR}護甲${GAME_CONFIG.HAMMER_CONFIG.EFFECTS.SHIELD_DURATION}秒)`);
     if (player.hammerEffects.heal) buffs.push(`💚 重錘恢復 (重錘觸發時+${GAME_CONFIG.HAMMER_CONFIG.EFFECTS.HEAL_AMOUNT}血量)`);
@@ -800,8 +865,17 @@ class EnhancedUIManager {
     const hammerRate = battleStats.playerAttackCount > 0 ? 
       (battleStats.hammerProcCount / battleStats.playerAttackCount * 100) : 0;
 
+    // 🎯 戰力信息
+    const playerPower = GameConfigUtils.calculatePlayerCombatPower(player);
+
     contentDiv.innerHTML = `
       <h2 style="color: #4ecdc4; margin-bottom: 20px;">⚔️ 戰鬥總結</h2>
+      
+      <div style="background: rgba(78, 205, 196, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+        <div style="color: #4ecdc4; font-weight: bold; margin-bottom: 8px;">🏆 戰鬥表現</div>
+        <div style="color: white; font-size: 18px;">當前戰力: <span style="color: #ffd700; font-weight: bold;">${playerPower.displayPower}</span></div>
+      </div>
+      
       <div style="text-align: left; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 15px;">
         <div>⏱️ 戰鬥時長: <span style="color: #ffd700; font-weight: bold;">${battleDuration.toFixed(1)}秒</span></div>
         <div>❤️ 剩餘血量: <span style="color: #ff6b6b; font-weight: bold;">${player.hp.toFixed(1)}/${player.maxHp}</span></div>
@@ -825,25 +899,19 @@ class EnhancedUIManager {
 
     resultsDiv.appendChild(contentDiv);
     
-    // 🔧 修復：全螢幕點擊關閉事件
+    // 點擊關閉事件
     resultsDiv.addEventListener('click', (e) => {
-      // 如果點擊的是背景區域，關閉面板
       if (e.target === resultsDiv) {
         resultsDiv.remove();
       }
     });
     
-    // 🔧 修復：內容區域點擊也關閉
     contentDiv.addEventListener('click', (e) => {
-      // 阻止事件冒泡，但仍然關閉面板
       e.stopPropagation();
       resultsDiv.remove();
     });
 
     document.body.appendChild(resultsDiv);
-    
-    // 🔧 移除所有自動關閉邏輯
-    // 不設置任何 setTimeout 自動關閉
   }
 }
 
