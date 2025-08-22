@@ -30,10 +30,11 @@ class GameManager {
     this.giveStartingBadge();
   }
 
+  // 🎯 修復：startGame() 方法中的戰力顯示
   startGame() {
     console.log('🎮 遊戲啟動 - 準備第1關');
     
-    // 🎯 顯示玩家初始戰力
+    // 🔧 統一顯示玩家初始戰力
     const playerPower = GameConfigUtils.calculatePlayerCombatPower(this.player);
     console.log(`👤 玩家初始戰力: ${playerPower.displayPower} (原始: ${playerPower.rawPower.toFixed(0)})`);
     
@@ -41,6 +42,7 @@ class GameManager {
     this.nextLevel();
   }
 
+  // 🎯 修復：nextLevel() 方法中的戰力顯示
   nextLevel() {
     if (this.currentLevel > GAME_CONFIG.TOTAL_LEVELS) {
       return this.endGame();
@@ -58,7 +60,7 @@ class GameManager {
     const enemyType = selectEnemyType(this.currentLevel);
     this.enemy = new Enemy(this.currentLevel, enemyType);
     
-    // 🎯 顯示敵人戰力信息
+    // 🔧 統一顯示敵人戰力信息
     const enemyPower = GameConfigUtils.calculateEnemyCombatPower(this.enemy);
     const targetPower = GameConfigUtils.getTargetCombatPower(this.currentLevel);
     const targetDisplay = GameConfigUtils.formatCombatPowerForDisplay(targetPower);
@@ -102,10 +104,11 @@ class GameManager {
     console.log(`🎛️ 全局戰鬥速度設定為 ${speed}x`);
   }
 
+  // 🎯 修復：endBattle() 方法中的戰力對比
   endBattle(won, battleStats = null) {
     console.log(`⚔️ 戰鬥結束 - ${won ? '✅ 勝利' : '❌ 失敗'}`);
     
-    // 🎯 顯示戰力對比結果
+    // 🔧 統一顯示戰力對比結果
     if (won && battleStats) {
       const playerPower = GameConfigUtils.calculatePlayerCombatPower(this.player);
       const enemyPower = GameConfigUtils.calculateEnemyCombatPower(this.enemy);
@@ -142,6 +145,25 @@ class GameManager {
     }, GAME_CONFIG.BATTLE_RESULT_DISPLAY_TIME / 3);
   }
 
+  // 🎯 修復：endGame() 方法中的最終戰力統計
+  endGame() {
+    // 使用配置的鑽石計算
+    const diamonds = Math.floor(this.currentLevel / 5) + 
+      (this.currentLevel >= 20 ? 5 : 0);
+    
+    console.log(`🎯 遊戲結束！到達關卡: ${this.currentLevel}, 獲得鑽石: ${diamonds}`);
+    
+    // 🔧 統一顯示最終戰力統計
+    const finalPower = GameConfigUtils.calculatePlayerCombatPower(this.player);
+    console.log(`🏆 最終戰力: ${finalPower.displayPower} (原始: ${finalPower.rawPower.toFixed(0)})`);
+    
+    this.diamonds += diamonds;
+    
+    this.showGameOverScreen();
+  }
+
+
+  // 🎯 修復：showLevelUpChoice() 方法中的升級效果描述
   showLevelUpChoice(goldReward) {
     const upgradeOptions = generateUpgradeOptions(this.currentLevel);
     
@@ -228,7 +250,7 @@ class GameManager {
     // 綁定點擊事件
     document.querySelectorAll('.upgrade-option').forEach((option, index) => {
       option.addEventListener('click', () => {
-        // 🎯 升級前後戰力對比
+        // 🔧 升級前後戰力對比統一使用開根號顯示
         const beforePower = GameConfigUtils.calculatePlayerCombatPower(this.player);
         console.log(`📊 升級前戰力: ${beforePower.displayPower}`);
         
@@ -262,7 +284,8 @@ class GameManager {
     });
   }
 
-  // 🎯 新增：玩家戰力顯示
+
+  // 🎯 修復：getPlayerPowerDisplayHTML() 方法
   getPlayerPowerDisplayHTML() {
     const playerPower = GameConfigUtils.calculatePlayerCombatPower(this.player);
     const nextLevelTarget = GameConfigUtils.getTargetCombatPower(this.currentLevel + 1);
@@ -278,6 +301,9 @@ class GameManager {
         </div>
         <div style="color: #ccc; font-size: 13px;">
           下關預期敵人戰力: <span style="color: ${GAME_CONFIG.UI_CONFIG.COLORS.SECONDARY}; font-weight: bold;">${nextLevelDisplay}</span>
+        </div>
+        <div style="color: #87ceeb; font-size: 12px; margin-top: 5px; opacity: 0.8;">
+          💡 戰力值為開根號顯示，更直觀易懂
         </div>
       </div>
     `;
@@ -478,22 +504,7 @@ class GameManager {
     this.showLevelUpChoice(0);
   }
 
-  endGame() {
-    // 使用配置的鑽石計算
-    const diamonds = Math.floor(this.currentLevel / 5) + 
-      (this.currentLevel >= 20 ? 5 : 0);
-    
-    console.log(`🎯 遊戲結束！到達關卡: ${this.currentLevel}, 獲得鑽石: ${diamonds}`);
-    
-    // 🎯 顯示最終戰力統計
-    const finalPower = GameConfigUtils.calculatePlayerCombatPower(this.player);
-    console.log(`🏆 最終戰力: ${finalPower.displayPower} (原始: ${finalPower.rawPower.toFixed(0)})`);
-    
-    this.diamonds += diamonds;
-    
-    this.showGameOverScreen();
-  }
-
+  // 🎯 修復：showGameOverScreen() 方法中的戰力顯示
   showGameOverScreen() {
     const gameOverDiv = document.createElement('div');
     gameOverDiv.style.cssText = `
@@ -512,6 +523,8 @@ class GameManager {
 
     const isVictory = this.currentLevel > 20;
     const badgeCount = this.player.badges.length;
+    
+    // 🔧 統一使用開根號顯示最終戰力
     const finalPower = GameConfigUtils.calculatePlayerCombatPower(this.player);
     
     const contentDiv = document.createElement('div');
@@ -608,10 +621,11 @@ class GameManager {
     this.updatePlayerStats();
   }
 
+  // 🎯 修復：updateEnemyDisplay() 方法
   updateEnemyDisplay() {
     if (!this.enemy) return;
 
-    // 更新敵人名稱（包含攻擊力和戰力）
+    // 🔧 統一使用開根號顯示戰力
     const enemyName = document.querySelector('.enemy .character-name');
     if (enemyName) {
       const enemyPower = GameConfigUtils.calculateEnemyCombatPower(this.enemy);
@@ -634,6 +648,39 @@ class GameManager {
     const enemyAttackFill = document.querySelector('.enemy .attack-fill');
     if (enemyAttackFill) {
       enemyAttackFill.style.width = '0%';
+    }
+  }
+
+  // 🎯 修復：updatePlayerStats() 方法
+  updatePlayerStats() {
+    // 🔧 統一使用開根號顯示戰力
+    const heroName = document.querySelector('.hero .character-name');
+    if (heroName) {
+      const playerPower = GameConfigUtils.calculatePlayerCombatPower(this.player);
+      heroName.textContent = `🔨 重錘英雄 (${Math.round(this.player.hp)}/${this.player.maxHp}) 戰力:${playerPower.displayPower}`;
+    }
+
+    // 更新統計面板
+    const stats = document.querySelectorAll('.stat-value');
+    if (stats.length >= 4) {
+      stats[0].textContent = this.player.getEffectiveAttack().toFixed(1);
+      stats[1].textContent = this.player.getEffectiveAttackSpeed().toFixed(2);
+      stats[2].textContent = this.player.getEffectiveArmor().toFixed(1);
+      stats[3].textContent = (this.player.critChance * 100).toFixed(0) + '%';
+    }
+
+    // 更新玩家血條
+    const heroHealthFill = document.querySelector('.hero .health-fill');
+    const heroHealthText = document.querySelector('.hero .health-text');
+    if (heroHealthFill && heroHealthText) {
+      const hpPercent = Math.max(0, (this.player.hp / this.player.maxHp) * 100);
+      heroHealthFill.style.width = `${hpPercent}%`;
+      heroHealthText.textContent = `${Math.round(this.player.hp)} / ${this.player.maxHp}`;
+    }
+
+    // 更新 Buff 显示
+    if (this.enhancedUI) {
+      this.enhancedUI.updateBuffDisplay(this.player);
     }
   }
 
