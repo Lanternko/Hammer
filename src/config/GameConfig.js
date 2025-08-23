@@ -16,7 +16,7 @@ export const GAME_CONFIG = {
   COMBAT_POWER_CONFIG: {
     // 🔧 修正：使用原始戰力值進行計算，但顯示開根號
     PLAYER_BASE_POWER: 1250,      // 原始戰力：100血×20攻×0.5攻速×(125EHP) = 1250
-    ENEMY_BASE_POWER: 1250,       // 匹配玩家初始戰力
+    ENEMY_BASE_POWER: 1000,       // 匹配玩家初始戰力
     GROWTH_RATE: 0.25,            // 每級25%成長
     
     // 🎨 統一顯示設定 - 一律開根號

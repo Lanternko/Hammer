@@ -254,25 +254,115 @@ class BattleSystem {
     document.body.appendChild(pauseButton);
   }
 
+  // 在 src/systems/BattleSystem.js 中修復 togglePause 方法
+  
   togglePause() {
     if (this.isActive) {
       this.pause();
-      // 🎨 使用UI管理器顯示詳細面板
-      this.uiManager.showDetailedPanel();
+      // 🔧 保持使用現有的 UI 管理器，但修改其行為
+      if (this.uiManager && typeof this.uiManager.showDetailedPanel === 'function') {
+        this.uiManager.showDetailedPanel();
+        
+        // 修復面板的點擊行為
+        setTimeout(() => {
+          const panel = document.getElementById('detailedPanel');
+          if (panel) {
+            // 移除原有的事件監聽器
+            const newPanel = panel.cloneNode(true);
+            panel.parentNode.replaceChild(newPanel, panel);
+            
+            // 添加修復後的事件監聽器
+            newPanel.addEventListener('click', () => {
+              this.resume();
+              newPanel.remove();
+              const pauseButton = document.getElementById('pauseButton');
+              if (pauseButton) {
+                pauseButton.innerHTML = '⏸️';
+              }
+            });
+          }
+        }, 100);
+      }
     } else {
       this.resume();
       this.hideDetailedPanel();
     }
     
+    // 更新暫停按鈕狀態
     const pauseButton = document.getElementById('pauseButton');
     if (pauseButton) {
       pauseButton.innerHTML = this.isActive ? '⏸️' : '▶️';
     }
   }
 
+  // 新增後備暫停面板方法
+  createFallbackPausePanel() {
+    // 移除已存在的面板
+    const existingPanel = document.getElementById('detailedPanel');
+    if (existingPanel) existingPanel.remove();
+    
+    const panel = document.createElement('div');
+    panel.id = 'detailedPanel';
+    panel.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    `;
+    
+    panel.innerHTML = `
+      <div style="
+        background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+        padding: 30px;
+        border-radius: 15px;
+        text-align: center;
+        color: white;
+        max-width: 400px;
+        width: 90%;
+      ">
+        <h2 style="margin-bottom: 20px; color: #4ecdc4;">⏸️ 遊戲暫停</h2>
+        <button onclick="this.closest('#detailedPanel').remove(); document.getElementById('pauseButton').click();" 
+                style="
+                  padding: 15px 30px;
+                  background: linear-gradient(45deg, #4ecdc4, #45b7b8);
+                  color: white;
+                  border: none;
+                  border-radius: 25px;
+                  font-size: 16px;
+                  cursor: pointer;
+                  transition: all 0.3s ease;
+                ">
+          ▶️ 繼續遊戲
+        </button>
+      </div>
+    `;
+    
+    document.body.appendChild(panel);
+  }
+
+  // 修復按鈕狀態更新
+  updatePauseButton() {
+    const pauseButton = document.getElementById('pauseButton');
+    if (pauseButton) {
+      pauseButton.innerHTML = this.isActive ? '⏸️' : '▶️';
+      pauseButton.style.pointerEvents = 'auto'; // 確保按鈕可點擊
+      pauseButton.style.cursor = 'pointer';
+    }
+  }
+
+  // 修復隱藏面板方法
   hideDetailedPanel() {
     const panel = document.getElementById('detailedPanel');
-    if (panel) panel.remove();
+    if (panel) {
+      panel.remove();
+      console.log('🔧 暫停面板已移除');
+    }
   }
 
   stop() {
@@ -353,6 +443,7 @@ class BattleSystem {
     this.frameCount++;
   }
 
+  // 在 src/systems/BattleSystem.js 的 processPlayerAttack 方法中修復
   processPlayerAttack() {
     const attackResult = this.player.performAttack();
     const { damage, isCrit, isHammerProc } = attackResult;
@@ -363,9 +454,22 @@ class BattleSystem {
     if (isCrit) this.battleStats.critCount++;
     if (isHammerProc) this.battleStats.hammerProcCount++;
     
-    // 計算敵人實際受到的傷害
-    const enemyDefense = this.enemy.defense || this.enemy.armor || 0;
-    const reducedDmg = Math.max(1, damage - enemyDefense);
+    // 🔧 修復：正確的護甲減傷計算
+    // 護甲減傷公式應該是：減傷率 = 護甲值 / (護甲值 + 100)
+    // 而不是直接用護甲值減少傷害
+    const enemyArmor = this.enemy.armor || this.enemy.defense || 0;
+    
+    // 正確的百分比減傷計算
+    const damageReduction = enemyArmor / (enemyArmor + 100);
+    const finalDamage = damage * (1 - damageReduction);
+    const reducedDmg = Math.max(1, Math.floor(finalDamage)); // 確保至少造成1點傷害
+    
+    console.log(`🔧 傷害計算詳情:`);
+    console.log(`   原始傷害: ${damage}`);
+    console.log(`   敵人護甲: ${enemyArmor}`);
+    console.log(`   減傷率: ${(damageReduction * 100).toFixed(1)}%`);
+    console.log(`   最終傷害: ${finalDamage.toFixed(1)} → ${reducedDmg}`);
+    
     this.enemy.hp = Math.max(0, this.enemy.hp - reducedDmg);
     
     // 顯示傷害數字
@@ -382,13 +486,7 @@ class BattleSystem {
         this.enemy.stunDuration = stunDuration;
         this.enemy.currentFrame = 0;
         console.log(`😵 敵人被重錘眩暈 ${stunDuration} 秒！`);
-      } else {
-        console.log(`🔨 重錘精通觸發！(眩暈已禁用)`);
       }
-    }
-    
-    if (GAME_CONFIG.DEBUG.LOG_BATTLE_STATS) {
-      console.log(`🔧 [DEBUG] 玩家攻擊: ${damage.toFixed(1)}傷害 → ${reducedDmg.toFixed(1)}實際傷害 (${isCrit ? '暴擊' : ''}${isHammerProc ? ' 重錘' : ''})`);
     }
     
     // 檢查敵人是否死亡
@@ -399,12 +497,25 @@ class BattleSystem {
     }
   }
 
+  // 修復敵人攻擊玩家的護甲計算
   processEnemyAttack() {
     const rawDmg = this.enemy.attack;
     
-    // 計算傷害：先護甲百分比減傷，再固定減傷
-    const armorReduction = rawDmg / (1 + this.player.getEffectiveArmor() / 100);
-    const finalDmg = Math.max(1, armorReduction - this.player.flatReduction);
+    // 🔧 修復：正確計算玩家護甲減傷
+    const playerArmor = this.player.getEffectiveArmor();
+    const armorReduction = playerArmor / (playerArmor + 100); // 百分比減傷
+    const armorReducedDamage = rawDmg * (1 - armorReduction);
+    
+    // 然後扣除固定減傷
+    const finalDmg = Math.max(1, armorReducedDamage - this.player.flatReduction);
+    
+    console.log(`🛡️ 玩家受傷計算:`);
+    console.log(`   敵人攻擊: ${rawDmg}`);
+    console.log(`   玩家護甲: ${playerArmor} (減傷${(armorReduction * 100).toFixed(1)}%)`);
+    console.log(`   護甲後傷害: ${armorReducedDamage.toFixed(1)}`);
+    console.log(`   固定減傷: ${this.player.flatReduction}`);
+    console.log(`   最終傷害: ${finalDmg.toFixed(1)}`);
+    
     this.player.hp = Math.max(0, this.player.hp - finalDmg);
     
     // 更新統計
@@ -418,10 +529,6 @@ class BattleSystem {
     
     // 檢查反甲徽章效果
     this.checkReflectArmor();
-    
-    if (GAME_CONFIG.DEBUG.LOG_BATTLE_STATS) {
-      console.log(`🔧 [DEBUG] 敵人攻擊: ${rawDmg}原始 → ${armorReduction.toFixed(1)}護甲減傷 → ${finalDmg.toFixed(1)}最終傷害`);
-    }
     
     // 檢查玩家是否死亡
     if (this.player.hp <= 0) {
