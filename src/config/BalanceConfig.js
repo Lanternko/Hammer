@@ -302,20 +302,27 @@ export class BalanceCalculator {
     };
   }
   
-  // 🎮 計算敵人戰力（用於對比）
+  // 修復戰力計算函數
   static calculateEnemyCombatPower(enemy) {
     const dps = enemy.attack * enemy.attackSpeed;
-    const damageReduction = enemy.armor / (enemy.armor + BALANCE_CONFIG.CALCULATION_PARAMS.ARMOR_CONSTANT);
+    
+    // ✅ 確保護甲值正確獲取
+    const armor = enemy.armor || enemy.defense || 0;
+    console.log(`🛡️ 敵人護甲檢查: armor=${armor}, defense=${enemy.defense}`);
+    
+    // ✅ 正確計算減傷率和EHP
+    const damageReduction = armor / (armor + 100);
     const ehp = enemy.maxHp / (1 - damageReduction);
     
     const rawPower = dps * ehp;
     
     return {
-      dps: dps,
-      ehp: ehp,
       rawPower: rawPower,
-      displayPower: this.formatCombatPowerForDisplay(rawPower),
-      sqrtPower: Math.sqrt(rawPower)
+      displayPower: Math.sqrt(rawPower).toFixed(1), // 開根號顯示
+      dps: dps.toFixed(1),
+      ehp: ehp.toFixed(0),
+      armor: armor,
+      damageReduction: (damageReduction * 100).toFixed(1) + '%'
     };
   }
 }

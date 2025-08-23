@@ -1,4 +1,5 @@
-// src/data/Enemies.js - 簡化的三參數模型
+// src/data/Enemies.js - 修復導出問題的完整版本
+
 export const EnemyArchetypes = {
   // 🗡️ 高攻速刺客
   assassin: {
@@ -6,12 +7,10 @@ export const EnemyArchetypes = {
     emoji: '🗡️',
     description: '極高攻擊速度，低血量',
     
-    // 🎯 只需要三個參數
     hpMultiplier: 0.6,      // 血量 = 基準 × 0.6 (脆皮)
     speedMultiplier: 1.8,   // 攻速 = 基準 × 1.8 (極快)
     strengthMultiplier: 1.0, // 強度 = 基準 × 1.0 (普通敵人)
     
-    // 其他設定
     specialAbility: 'crit_chance'
   },
   
@@ -133,7 +132,81 @@ export const EnemyArchetypes = {
   }
 };
 
-// 🧮 三參數反推算法
+// 🎯 從統一配置獲取目標戰力
+function getTargetCombatPowerForLevel(level) {
+  try {
+    const basePower = 1200;  // 修正：玩家初始戰力
+    const growthRate = 0.25; // 每級25%成長
+    return basePower * Math.pow(1 + growthRate, level - 1);
+  } catch (error) {
+    console.warn('⚠️ 無法獲取統一配置，使用備用數值');
+    return 1200 * Math.pow(1.25, level - 1);
+  }
+}
+
+// ===== 修復後的三參數計算算法 =====
+function calculateStatsFromThreeParams(targetCombatPower, hpMult, speedMult) {
+  console.log(`🔧 開始修復計算: 目標戰力=${targetCombatPower}, HP倍率=${hpMult}, 攻速倍率=${speedMult}`);
+  
+  // ✅ 正確的基準值設定
+  const baseHp = 100;        // 基準血量
+  const baseAttackSpeed = 1.0; // 基準攻速
+  const baseArmor = 20;      // 基準護甲
+  
+  // ✅ 第一步：直接計算血量（不需要二分法）
+  const hp = Math.round(baseHp * hpMult);
+  console.log(`💚 血量計算: ${baseHp} × ${hpMult} = ${hp}`);
+  
+  // ✅ 第二步：直接計算攻速（不需要二分法）
+  const attackSpeed = baseAttackSpeed * speedMult;
+  console.log(`⚡ 攻速計算: ${baseAttackSpeed} × ${speedMult} = ${attackSpeed}`);
+  
+  // ✅ 第三步：使用簡化的護甲計算
+  const armor = Math.round(baseArmor * Math.sqrt(hpMult));
+  console.log(`🛡️ 護甲計算: ${baseArmor} × √${hpMult} = ${armor}`);
+  
+  // ✅ 第四步：計算EHP
+  const damageReduction = armor / (armor + 100);
+  const ehp = hp / (1 - damageReduction);
+  console.log(`🔰 EHP計算: ${hp} ÷ (1 - ${damageReduction.toFixed(3)}) = ${ehp.toFixed(1)}`);
+  
+  // ✅ 第五步：反推攻擊力
+  // 戰力 = DPS × EHP，所以 DPS = 戰力 ÷ EHP
+  const requiredDPS = targetCombatPower / ehp;
+  const attack = Math.round(requiredDPS / attackSpeed);
+  console.log(`⚔️ 攻擊力計算: ${targetCombatPower} ÷ ${ehp.toFixed(1)} ÷ ${attackSpeed} = ${attack}`);
+  
+  // ✅ 第六步：驗證實際戰力
+  const actualDPS = attack * attackSpeed;
+  const actualCombatPower = actualDPS * ehp;
+  const error = Math.abs(actualCombatPower - targetCombatPower) / targetCombatPower;
+  
+  console.log(`🎯 戰力驗證:`);
+  console.log(`   實際DPS: ${actualDPS.toFixed(1)}`);
+  console.log(`   實際戰力: ${actualCombatPower.toFixed(0)}`);
+  console.log(`   目標戰力: ${targetCombatPower}`);
+  console.log(`   誤差: ${(error * 100).toFixed(1)}%`);
+  
+  return {
+    hp: Math.max(20, hp),
+    attack: Math.max(1, attack),
+    attackSpeed: attackSpeed,
+    armor: Math.max(0, armor),
+    
+    // 驗證信息
+    actualCombatPower: actualCombatPower,
+    error: error,
+    dps: actualDPS.toFixed(1),
+    ehp: ehp.toFixed(0),
+    
+    // 調試信息
+    damageReduction: (damageReduction * 100).toFixed(1) + '%',
+    baseHp: baseHp,
+    baseAttackSpeed: baseAttackSpeed
+  };
+}
+
+
 export function getEnemyStats(level, archetypeName) {
   const archetype = EnemyArchetypes[archetypeName];
   if (!archetype) {
@@ -141,20 +214,20 @@ export function getEnemyStats(level, archetypeName) {
     return getEnemyStats(level, 'warrior'); // 備用方案
   }
   
-  // 🎯 從配置獲取目標戰力（修正後的起始值）
+  // ✅ 獲取目標戰力（原始值，不開根號）
   const targetCombatPower = getTargetCombatPowerForLevel(level) * archetype.strengthMultiplier;
   
-  // 🧮 三參數反推計算
+  console.log(`🎯 === 創建 ${archetype.name} 等級${level} ===`);
+  console.log(`📊 基礎目標戰力: ${getTargetCombatPowerForLevel(level)}`);
+  console.log(`⚡ 強度倍率: ${archetype.strengthMultiplier}`);
+  console.log(`🎯 最終目標戰力: ${targetCombatPower}`);
+  
+  // ✅ 使用修復後的三參數算法
   const calculatedStats = calculateStatsFromThreeParams(
     targetCombatPower,
     archetype.hpMultiplier,
     archetype.speedMultiplier
   );
-  
-  console.log(`🎯 生成 ${archetype.name} 等級${level}`);
-  console.log(`📊 目標戰力: ${targetCombatPower.toFixed(0)} (基礎×${archetype.strengthMultiplier})`);
-  console.log(`⚔️ 屬性: HP=${calculatedStats.hp}, ATK=${calculatedStats.attack}, 攻速=${calculatedStats.attackSpeed.toFixed(1)}`);
-  console.log(`🎮 實際戰力: ${calculatedStats.actualCombatPower.toFixed(0)}, 誤差: ${(calculatedStats.error * 100).toFixed(1)}%`);
   
   return {
     // 基本信息
@@ -164,7 +237,7 @@ export function getEnemyStats(level, archetypeName) {
     type: archetypeName,
     level: level,
     
-    // 🎯 計算出的具體屬性
+    // ✅ 修復後的屬性
     maxHp: calculatedStats.hp,
     hp: calculatedStats.hp,
     attack: calculatedStats.attack,
@@ -172,7 +245,7 @@ export function getEnemyStats(level, archetypeName) {
     armor: calculatedStats.armor,
     
     // 戰鬥機制
-    attackFrame: Math.round(20 / calculatedStats.attackSpeed), // 假設20FPS
+    attackFrame: Math.round(20 / calculatedStats.attackSpeed),
     defense: calculatedStats.armor, // 向後兼容
     currentFrame: 0,
     
@@ -183,7 +256,7 @@ export function getEnemyStats(level, archetypeName) {
     // 特殊能力
     specialAbility: archetype.specialAbility,
     
-    // 🔍 計算結果驗證
+    // 驗證信息
     balanceInfo: {
       targetCombatPower: targetCombatPower,
       actualCombatPower: calculatedStats.actualCombatPower,
@@ -194,121 +267,11 @@ export function getEnemyStats(level, archetypeName) {
       // 三參數
       hpMultiplier: archetype.hpMultiplier,
       speedMultiplier: archetype.speedMultiplier,
-      strengthMultiplier: archetype.strengthMultiplier,
-      
-      // 計算過程
-      baseHp: calculatedStats.baseHp,
-      baseAttackSpeed: calculatedStats.baseAttackSpeed
+      strengthMultiplier: archetype.strengthMultiplier
     }
   };
 }
 
-// 🎯 從統一配置獲取目標戰力
-function getTargetCombatPowerForLevel(level) {
-  // 🔧 從統一配置導入
-  try {
-    // 這裡應該 import { BalanceCalculator } from '../config/BalanceConfig.js';
-    // 暫時用內聯實現避免循環依賴
-    const basePower = 1200;  // 修正：玩家初始戰力 100×20×0.5×(120EHP) = 1200
-    const growthRate = 0.25; // 每級25%成長（快速膨脹）
-    return basePower * Math.pow(1 + growthRate, level - 1);
-  } catch (error) {
-    console.warn('⚠️ 無法獲取統一配置，使用備用數值');
-    return 1200 * Math.pow(1.25, level - 1);
-  }
-}
-
-// 🧮 三參數反推核心算法
-function calculateStatsFromThreeParams(targetCombatPower, hpMult, speedMult) {
-  // 🎯 目標：找到基準值，使得 √(DPS × EHP) = targetCombatPower
-  // 其中：
-  // DPS = attack × attackSpeed = attack × (baseSpeed × speedMult)  
-  // EHP = hp / (1 - armorReduction) = (baseHp × hpMult) / (1 - armor/(armor+100))
-  // attack = DPS / attackSpeed（攻擊力由DPS和攻速反推）
-  
-  // 🔧 設定基準值（這些會被調整以達到目標戰力）
-  let baseHp = 100;        // 基準血量
-  let baseAttackSpeed = 1.0; // 基準攻速
-  let baseArmor = 20;       // 基準護甲
-  
-  // 📐 二分法求解最佳縮放係數
-  let low = 0.1;
-  let high = 10.0;
-  let bestScale = 1.0;
-  let bestError = Infinity;
-  
-  for (let iter = 0; iter < 50; iter++) {
-    const scale = (low + high) / 2;
-    
-    // 計算縮放後的屬性
-    const hp = Math.round(baseHp * hpMult * scale);
-    const attackSpeed = baseAttackSpeed * speedMult;
-    const armor = Math.round(baseArmor * scale * 0.5); // 護甲成長較慢
-    
-    // 計算DPS和EHP
-    const damageReduction = armor / (armor + 100);
-    const ehp = hp / (1 - damageReduction);
-    
-    // 🔧 關鍵：從目標戰力反推DPS
-    // 因為 √(DPS × EHP) = targetCombatPower
-    // 所以 DPS = targetCombatPower² / EHP
-    const requiredDPS = (targetCombatPower * targetCombatPower) / ehp;
-    const attack = Math.round(requiredDPS / attackSpeed);
-    
-    // 驗證實際戰力
-    const actualDPS = attack * attackSpeed;
-    const actualCombatPower = Math.sqrt(actualDPS * ehp);
-    const error = Math.abs(actualCombatPower - targetCombatPower);
-    
-    if (error < bestError) {
-      bestError = error;
-      bestScale = scale;
-    }
-    
-    // 調整搜索範圍
-    if (actualCombatPower < targetCombatPower) {
-      low = scale;
-    } else {
-      high = scale;
-    }
-    
-    // 精度檢查
-    if (error < targetCombatPower * 0.01) { // 1%誤差內
-      break;
-    }
-  }
-  
-  // 🎯 用最佳縮放係數計算最終屬性
-  const finalHp = Math.max(20, Math.round(baseHp * hpMult * bestScale));
-  const finalAttackSpeed = baseAttackSpeed * speedMult;
-  const finalArmor = Math.max(0, Math.round(baseArmor * bestScale * 0.5));
-  
-  const finalDamageReduction = finalArmor / (finalArmor + 100);
-  const finalEHP = finalHp / (1 - finalDamageReduction);
-  const requiredDPS = (targetCombatPower * targetCombatPower) / finalEHP;
-  const finalAttack = Math.max(5, Math.round(requiredDPS / finalAttackSpeed));
-  
-  // 驗證最終結果
-  const finalDPS = finalAttack * finalAttackSpeed;
-  const finalCombatPower = Math.sqrt(finalDPS * finalEHP);
-  const finalError = Math.abs(finalCombatPower - targetCombatPower) / targetCombatPower;
-  
-  return {
-    hp: finalHp,
-    attack: finalAttack,
-    attackSpeed: finalAttackSpeed,
-    armor: finalArmor,
-    dps: finalDPS,
-    ehp: finalEHP,
-    actualCombatPower: finalCombatPower,
-    error: finalError,
-    
-    // 調試信息
-    baseHp: baseHp,
-    baseAttackSpeed: baseAttackSpeed,
-    scale: bestScale
-  };
-}
 
 // 🎮 智能敵人選擇（基於三參數）
 export function selectEnemyType(level) {
@@ -442,6 +405,7 @@ export function applyEnemySpecialAbilities(enemy) {
   return enemy;
 }
 
-console.log('🎯 三參數敵人系統載入完成');
+console.log('🎯 三參數敵人系統載入完成 - 修復導出版本');
 console.log('📊 模型: 血量乘積 × 攻速乘積 × 強度乘積');
-console.log('🎮 第1關戰力: 1000 (匹配玩家初始戰力)');
+console.log('🎮 第1關戰力: 1200 (匹配玩家初始戰力)');
+console.log('✅ getEnemyStats 函數已正確導出');

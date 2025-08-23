@@ -659,172 +659,230 @@ export class BattleUITemplates {
   }
 }
 
-// 🎯 戰鬥UI管理器 - 完整版本
+// ===== 第三部分：修復後的 UI 管理器 =====
 export class BattleUIManager {
+  
   constructor(battleSystem) {
     this.battleSystem = battleSystem;
+    console.log('✅ BattleUIManager_FIXED 初始化完成');
   }
   
-  // 🖥️ 顯示詳細暫停面板（明亮版本）
+  // ✅ 修復戰力計算方法
+  calculateCombatComparison(player, enemy) {
+    try {
+      // 直接在這裡計算，避免方法調用問題
+      const playerPowerData = {
+        rawPower: this.calculatePlayerRawPower(player),
+        displayPower: Math.sqrt(this.calculatePlayerRawPower(player)).toFixed(1),
+        dps: (player.getEffectiveAttack() * player.getEffectiveAttackSpeed()).toFixed(1),
+        ehp: this.calculatePlayerEHP(player).toFixed(0)
+      };
+      
+      const enemyPowerData = {
+        rawPower: this.calculateEnemyRawPower(enemy),
+        displayPower: Math.sqrt(this.calculateEnemyRawPower(enemy)).toFixed(1),
+        dps: (enemy.attack * enemy.attackSpeed).toFixed(1),
+        ehp: this.calculateEnemyEHP(enemy).toFixed(0)
+      };
+      
+      // 計算優勢比較
+      const ratio = playerPowerData.rawPower / enemyPowerData.rawPower;
+      
+      let advantage;
+      if (ratio > 1.3) {
+        advantage = { text: '玩家大幅領先', color: '#4CAF50', difference: `+${((ratio - 1) * 100).toFixed(0)}%` };
+      } else if (ratio > 1.1) {
+        advantage = { text: '玩家輕微領先', color: '#8BC34A', difference: `+${((ratio - 1) * 100).toFixed(0)}%` };
+      } else if (ratio > 0.9) {
+        advantage = { text: '勢均力敵', color: '#FFC107', difference: `±${Math.abs((ratio - 1) * 100).toFixed(0)}%` };
+      } else if (ratio > 0.7) {
+        advantage = { text: '敵人輕微領先', color: '#FF9800', difference: `-${((1 - ratio) * 100).toFixed(0)}%` };
+      } else {
+        advantage = { text: '敵人大幅領先', color: '#ff6b6b', difference: `-${((1 - ratio) * 100).toFixed(0)}%` };
+      }
+      
+      return {
+        playerPower: playerPowerData,
+        enemyPower: enemyPowerData,
+        advantage: advantage
+      };
+      
+    } catch (error) {
+      console.error('❌ 計算戰力對比時發生錯誤:', error);
+      return null;
+    }
+  }
+  
+  // ✅ 輔助計算方法
+  calculatePlayerRawPower(player) {
+    const dps = player.getEffectiveAttack() * player.getEffectiveAttackSpeed();
+    const ehp = this.calculatePlayerEHP(player);
+    return dps * ehp;
+  }
+  
+  calculatePlayerEHP(player) {
+    const armor = player.getEffectiveArmor();
+    const damageReduction = armor / (armor + 100);
+    return player.maxHp / (1 - damageReduction);
+  }
+  
+  calculateEnemyRawPower(enemy) {
+    const dps = enemy.attack * enemy.attackSpeed;
+    const ehp = this.calculateEnemyEHP(enemy);
+    return dps * ehp;
+  }
+  
+  calculateEnemyEHP(enemy) {
+    const armor = enemy.armor || enemy.defense || 0;
+    const damageReduction = armor / (armor + 100);
+    return enemy.maxHp / (1 - damageReduction);
+  }
+  
+  // ✅ 修復暫停詳細面板
   showDetailedPanel() {
-    this.removeExistingPanel();
-    
-    const panel = this.createModalPanel();
-    const playerStats = this.battleSystem.player.getInfo();
-    const enemyStats = this.battleSystem.enemy.getInfo();
-    const battleStats = this.battleSystem.getCurrentStats();
-    
-    // 🎯 計算戰力對比（統一使用開根號顯示）
-    const combatComparison = this.calculateCombatComparison();
-    
-    // 使用模板生成HTML
-    panel.innerHTML = BattleUITemplates.getDetailedStatsHTML(
-      playerStats, 
-      enemyStats, 
-      battleStats, 
-      combatComparison
-    );
-    
-    document.body.appendChild(panel);
-  }
-  
-  // 🎮 創建速度控制UI（明亮版本）
-  createSpeedControlUI() {
-    if (document.getElementById('speedControl')) return;
-    
-    const speedControl = document.createElement('div');
-    speedControl.id = 'speedControl';
-    speedControl.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 330px;
-      background: rgba(45, 55, 75, 0.95);
-      border: 2px solid #5a9fd4;
-      border-radius: 12px;
-      padding: 15px;
-      color: white;
-      font-size: 14px;
-      z-index: 200;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 4px 20px rgba(90, 159, 212, 0.3);
-    `;
-    
-    const colors = { SUCCESS: '#4CAF50', WARNING: '#FF9800' };
-    speedControl.innerHTML = BattleUITemplates.getSpeedControlHTML(
-      this.battleSystem.battleSpeed, 
-      colors
-    );
-    
-    document.body.appendChild(speedControl);
-    window.gameManager = this.battleSystem.gameManager;
-  }
-  
-  // 🏆 顯示戰鬥結果（明亮版本）
-  showBattleResults(battleStats, player) {
-    const resultsDiv = this.createModalPanel();
-    resultsDiv.style.cursor = 'pointer';
-    
-    const contentDiv = document.createElement('div');
-    contentDiv.style.cssText = `
-      background: linear-gradient(135deg, rgba(45, 55, 75, 0.95), rgba(35, 45, 65, 0.95));
-      border: 3px solid #5a9fd4;
-      border-radius: 20px;
-      padding: 35px;
-      color: white;
-      min-width: 500px;
-      text-align: center;
-      box-shadow: 0 10px 40px rgba(90, 159, 212, 0.4);
-      cursor: default;
-      position: relative;
-      backdrop-filter: blur(15px);
-    `;
-    
-    contentDiv.innerHTML = BattleUITemplates.getBattleResultsHTML(battleStats, player);
-    
-    resultsDiv.appendChild(contentDiv);
-    
-    // 點擊關閉事件
-    resultsDiv.addEventListener('click', (e) => {
-      if (e.target === resultsDiv || e.target === contentDiv) {
-        resultsDiv.remove();
-      }
-    });
-    
-    contentDiv.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (e.target === contentDiv) {
-        resultsDiv.remove();
-      }
-    });
-    
-    document.body.appendChild(resultsDiv);
-  }
-  
-  // 🔧 工具方法
-  createModalPanel() {
-    const panel = document.createElement('div');
-    panel.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.85);
-      backdrop-filter: blur(12px);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    `;
-    return panel;
-  }
-  
-  removeExistingPanel() {
-    const existing = document.getElementById('detailedPanel');
-    if (existing) existing.remove();
-  }
-  
-  // 🎯 計算戰力對比（統一使用開根號顯示）
-  calculateCombatComparison() {
-    // 導入配置工具
-    const { GameConfigUtils } = this.battleSystem.gameManager.constructor;
-    
-    // 使用統一的戰力計算
-    const playerPowerData = GameConfigUtils.calculatePlayerCombatPower(this.battleSystem.player);
-    const enemyPowerData = GameConfigUtils.calculateEnemyCombatPower(this.battleSystem.enemy);
-    
-    // 比較原始戰力值
-    const playerRawPower = playerPowerData.rawPower;
-    const enemyRawPower = enemyPowerData.rawPower;
-    const ratio = playerRawPower / enemyRawPower;
-    
-    let advantage, color;
-    
-    if (ratio > 1.2) {
-      advantage = { text: '玩家大幅領先', color: '#4CAF50', difference: `+${((ratio - 1) * 100).toFixed(0)}%` };
-    } else if (ratio > 1.05) {
-      advantage = { text: '玩家略勝', color: '#4ecdc4', difference: `+${((ratio - 1) * 100).toFixed(0)}%` };
-    } else if (ratio > 0.95) {
-      advantage = { text: '勢均力敵', color: '#ffd700', difference: '相近' };
-    } else if (ratio > 0.8) {
-      advantage = { text: '敵人略勝', color: '#FF9800', difference: `-${((1 - ratio) * 100).toFixed(0)}%` };
-    } else {
-      advantage = { text: '敵人大幅領先', color: '#ff6b6b', difference: `-${((1 - ratio) * 100).toFixed(0)}%` };
+    if (!this.battleSystem.player || !this.battleSystem.enemy) {
+      console.warn('❌ 無法顯示詳細面板：玩家或敵人數據缺失');
+      return;
     }
     
-    return {
-      playerPower: {
-        display: playerPowerData.displayPower,
-        dps: playerPowerData.dps,
-        ehp: playerPowerData.ehp
-      },
-      enemyPower: {
-        display: enemyPowerData.displayPower,
-        dps: enemyPowerData.dps,
-        ehp: enemyPowerData.ehp
-      },
-      advantage: advantage
-    };
+    // 移除舊面板
+    const oldPanel = document.getElementById('detailedPausePanel');
+    if (oldPanel) oldPanel.remove();
+    
+    try {
+      // 計算戰力對比
+      const comparison = this.calculateCombatComparison(
+        this.battleSystem.player, 
+        this.battleSystem.enemy
+      );
+      
+      if (!comparison) {
+        console.error('❌ 戰力對比計算失敗');
+        return;
+      }
+      
+      // 創建面板
+      const panel = document.createElement('div');
+      panel.id = 'detailedPausePanel';
+      panel.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(10px);
+      `;
+      
+      const content = document.createElement('div');
+      content.style.cssText = `
+        background: rgba(45, 55, 75, 0.95);
+        border: 3px solid #5a9fd4;
+        border-radius: 20px;
+        padding: 30px;
+        color: white;
+        max-width: 900px;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 40px rgba(90, 159, 212, 0.4);
+      `;
+      
+      content.innerHTML = this.getDetailedPanelHTML(comparison);
+      panel.appendChild(content);
+      
+      // 點擊外部關閉
+      panel.addEventListener('click', (e) => {
+        if (e.target === panel) {
+          this.battleSystem.togglePause();
+        }
+      });
+      
+      document.body.appendChild(panel);
+      console.log('✅ 修復版詳細暫停面板已顯示');
+      
+    } catch (error) {
+      console.error('❌ 顯示詳細面板時發生錯誤:', error);
+    }
+  }
+  
+  // ✅ 詳細面板HTML生成
+  getDetailedPanelHTML(comparison) {
+    const battleDuration = (Date.now() - this.battleSystem.battleStats.startTime) / 1000;
+    
+    return `
+      <div style="text-align: center; margin-bottom: 25px;">
+        <h2 style="color: #5a9fd4; font-size: 28px; margin-bottom: 10px;">⏸️ 戰鬥暫停</h2>
+        <p style="color: #87ceeb; font-size: 16px;">詳細戰力分析與戰鬥數據</p>
+      </div>
+      
+      <!-- 戰力對比 -->
+      <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px; margin-bottom: 25px; align-items: center;">
+        <div style="background: rgba(78, 205, 196, 0.1); padding: 20px; border-radius: 12px; border: 1px solid rgba(78, 205, 196, 0.3);">
+          <h3 style="color: #4ecdc4; margin-bottom: 15px;">👤 玩家戰力</h3>
+          <div style="font-size: 24px; margin-bottom: 10px;">${comparison.playerPower.displayPower}</div>
+          <div style="font-size: 14px; opacity: 0.8;">
+            DPS: ${comparison.playerPower.dps}<br>
+            EHP: ${comparison.playerPower.ehp}<br>
+            血量: ${this.battleSystem.player.hp}/${this.battleSystem.player.maxHp}<br>
+            攻擊: ${this.battleSystem.player.getEffectiveAttack()}<br>
+            護甲: ${this.battleSystem.player.getEffectiveArmor()}
+          </div>
+        </div>
+        
+        <div style="text-align: center; background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 12px;">
+          <div style="font-size: 36px; margin-bottom: 12px;">⚔️</div>
+          <div style="color: ${comparison.advantage.color}; font-weight: bold; font-size: 16px;">
+            ${comparison.advantage.text}
+          </div>
+          <div style="color: #d0d0d0; font-size: 13px; margin-top: 6px;">
+            差距: ${comparison.advantage.difference}
+          </div>
+        </div>
+        
+        <div style="background: rgba(255, 107, 107, 0.1); padding: 20px; border-radius: 12px; border: 1px solid rgba(255, 107, 107, 0.3);">
+          <h3 style="color: #ff6b6b; margin-bottom: 15px;">👹 敵人戰力</h3>
+          <div style="font-size: 24px; margin-bottom: 10px;">${comparison.enemyPower.displayPower}</div>
+          <div style="font-size: 14px; opacity: 0.8;">
+            DPS: ${comparison.enemyPower.dps}<br>
+            EHP: ${comparison.enemyPower.ehp}<br>
+            血量: ${this.battleSystem.enemy.hp}/${this.battleSystem.enemy.maxHp}<br>
+            攻擊: ${this.battleSystem.enemy.attack}<br>
+            護甲: ${this.battleSystem.enemy.armor || this.battleSystem.enemy.defense || 0}
+          </div>
+        </div>
+      </div>
+      
+      <!-- 戰鬥統計 -->
+      <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+        <h3 style="color: #87ceeb; margin-bottom: 15px;">📊 戰鬥統計</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px;">
+          <div style="text-align: center;">
+            <div style="color: #4ecdc4; font-size: 12px;">戰鬥時間</div>
+            <div style="font-size: 16px; font-weight: bold;">${battleDuration.toFixed(1)}秒</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="color: #4ecdc4; font-size: 12px;">玩家攻擊</div>
+            <div style="font-size: 16px; font-weight: bold;">${this.battleSystem.battleStats.playerAttackCount}</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="color: #4ecdc4; font-size: 12px;">暴擊次數</div>
+            <div style="font-size: 16px; font-weight: bold;">${this.battleSystem.battleStats.critCount}</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="color: #4ecdc4; font-size: 12px;">重錘次數</div>
+            <div style="font-size: 16px; font-weight: bold;">${this.battleSystem.battleStats.hammerProcCount}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="text-align: center; color: #87ceeb; font-size: 14px;">
+        點擊外部區域或暫停按鈕繼續戰鬥
+      </div>
+    `;
   }
 }
 
