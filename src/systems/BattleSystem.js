@@ -197,11 +197,19 @@ class BattleSystem {
     this.battleStats.startTime = Date.now();
     this.lastFrameTime = performance.now();
     
-    // 🎨 使用UI管理器創建控制界面
-    this.uiManager.createSpeedControlUI();
+    // 🎨 使用UI管理器創建控制界面 - 添加安全檢查
+    if (this.uiManager && typeof this.uiManager.createSpeedControlUI === 'function') {
+      this.uiManager.createSpeedControlUI();
+    } else {
+      console.warn('⚠️ UI Manager not properly initialized or missing createSpeedControlUI method');
+      // 創建一個簡單的速度控制作為後備
+      this.createFallbackSpeedControl();
+    }
+    
     this.createPauseButton();
     this.loop();
   }
+
 
   createPauseButton() {
     if (document.getElementById('pauseButton')) return;
