@@ -1,4 +1,5 @@
 import { GAME_CONFIG, GameConfigUtils } from '../config/GameConfig.js';
+import GameUtils from '../utils/GameUtils.js';
 // src/ui/BattleUITemplates.js - 完整的戰鬥UI模板系統（明亮版本）
 export class BattleUITemplates {
   
@@ -373,7 +374,7 @@ export class BattleUITemplates {
         </div>
         <div style="
           padding: 8px 15px;
-          background: ${this.getRarityColor(option.rarity)};
+          background: ${GameUtils.getRarityColor(option.rarity)};
           color: white;
           border-radius: 20px;
           font-size: 13px;
@@ -381,7 +382,7 @@ export class BattleUITemplates {
           display: inline-block;
           box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         ">
-          ${this.getRarityText(option.rarity)}
+          ${GameUtils.getRarityText(option.rarity)}
         </div>
         
         <!-- 鼠標懸浮效果層 -->
@@ -580,14 +581,14 @@ export class BattleUITemplates {
         <div style="
           margin-bottom: 12px;
           padding: 8px 15px;
-          background: ${this.getRarityColor(item.rarity)};
+          background: ${GameUtils.getRarityColor(item.rarity)};
           color: white;
           border-radius: 20px;
           font-size: 13px;
           font-weight: bold;
           display: inline-block;
         ">
-          ${this.getRarityText(item.rarity)}
+          ${GameUtils.getRarityText(item.rarity)}
         </div>
         <div style="
           background: ${canAfford ? '#ffd700' : '#666'};
@@ -636,28 +637,7 @@ export class BattleUITemplates {
   }
   
   // 🔧 工具方法：稀有度顏色
-  static getRarityColor(rarity) {
-    const colors = {
-      'common': '#A0A0A0',
-      'uncommon': '#4CAF50',
-      'rare': '#2196F3',
-      'epic': '#9C27B0',
-      'legendary': '#FF9800'
-    };
-    return colors[rarity] || '#FFFFFF';
-  }
-  
-  // 🔧 工具方法：稀有度文字
-  static getRarityText(rarity) {
-    const texts = {
-      'common': '普通',
-      'uncommon': '罕見',
-      'rare': '稀有',
-      'epic': '史詩',
-      'legendary': '傳說'
-    };
-    return texts[rarity] || '未知';
-  }
+  // rarity helpers centralized in GameUtils
 }
 
 // Fixed BattleUIManager Constructor

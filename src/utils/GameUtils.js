@@ -106,10 +106,6 @@ class GameUtils {
     return armor / (armor + 100);
   }
 
-  static calculateEffectiveDamage(baseDamage, armor, flatReduction = 0) {
-    const armorReduction = baseDamage / (1 + armor / 100);
-    return Math.max(1, armorReduction - flatReduction);
-  }
 
   static calculateDPS(attack, attackSpeed, critChance = 0, critMultiplier = 2) {
     const critDamageMultiplier = 1 + (critChance * (critMultiplier - 1));

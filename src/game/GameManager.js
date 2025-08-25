@@ -6,6 +6,7 @@ import EventSystem from '../systems/EventSystem.js';
 import { selectEnemyType, getEnemyStats } from '../data/Enemies.js';
 import { generateUpgradeOptions, applyUpgradeToPlayer } from '../data/upgradeRewards.js';
 import { GAME_CONFIG, GameConfigUtils } from '../config/GameConfig.js';
+import GameUtils from '../utils/GameUtils.js';
 
 class GameManager {
   constructor() {
@@ -231,13 +232,13 @@ class GameManager {
               <div style="
                 margin-top: 10px;
                 padding: 5px 10px;
-                background: ${this.getRarityColor(option.rarity)};
+                background: ${GameUtils.getRarityColor(option.rarity)};
                 color: white;
                 border-radius: 15px;
                 font-size: 12px;
                 font-weight: bold;
               ">
-                ${this.getRarityText(option.rarity)}
+                ${GameUtils.getRarityText(option.rarity)}
               </div>
             </div>
           `).join('')}
@@ -344,27 +345,7 @@ class GameManager {
     }
   }
 
-  getRarityColor(rarity) {
-    switch(rarity) {
-      case 'common': return '#A0A0A0';
-      case 'uncommon': return GAME_CONFIG.UI_CONFIG.COLORS.SUCCESS;
-      case 'rare': return '#2196F3';
-      case 'epic': return '#9C27B0';
-      case 'legendary': return GAME_CONFIG.UI_CONFIG.COLORS.WARNING;
-      default: return '#FFFFFF';
-    }
-  }
-
-  getRarityText(rarity) {
-    switch(rarity) {
-      case 'common': return '普通';
-      case 'uncommon': return '罕見';
-      case 'rare': return '稀有';
-      case 'epic': return '史詩';
-      case 'legendary': return '傳說';
-      default: return '';
-    }
-  }
+  // rarity helpers centralized in GameUtils
 
   giveStartingBadge() {
     // 開局給重錘徽章

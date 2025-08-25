@@ -1,5 +1,6 @@
 // src/systems/EventSystem.js - 徽章可選擇
 import { getRandomBadges } from '../data/Badges.js';
+import GameUtils from '../utils/GameUtils.js';
 
 class EventSystem {
   constructor(gameManager) {
@@ -123,13 +124,13 @@ class EventSystem {
           <div style="
             margin-bottom: 10px;
             padding: 5px 10px;
-            background: ${this.getRarityColor(option.rarity)};
+            background: ${GameUtils.getRarityColor(option.rarity)};
             color: white;
             border-radius: 15px;
             font-size: 12px;
             font-weight: bold;
           ">
-            ${this.getRarityText(option.rarity)}
+            ${GameUtils.getRarityText(option.rarity)}
           </div>
           <div style="
             background: ${canAfford ? '#ffd700' : '#666'};
@@ -147,27 +148,7 @@ class EventSystem {
     }).join('');
   }
 
-  getRarityColor(rarity) {
-    switch(rarity) {
-      case 'common': return '#A0A0A0';
-      case 'uncommon': return '#4CAF50';
-      case 'rare': return '#2196F3';
-      case 'epic': return '#9C27B0';
-      case 'legendary': return '#FF9800';
-      default: return '#FFFFFF';
-    }
-  }
-
-  getRarityText(rarity) {
-    switch(rarity) {
-      case 'common': return '普通';
-      case 'uncommon': return '罕見';
-      case 'rare': return '稀有';
-      case 'epic': return '史詩';
-      case 'legendary': return '傳說';
-      default: return '';
-    }
-  }
+  // rarity helpers centralized in GameUtils
 
   bindEventHandlers() {
     // 徽章購買
