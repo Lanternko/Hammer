@@ -9,6 +9,14 @@ import { GAME_CONFIG, GameConfigUtils } from '../config/GameConfig.js';
 import GameUtils from '../utils/GameUtils.js';
 
 class GameManager {
+  
+  // Helper function to format stat numbers without trailing .0
+  formatStatNumber(value) {
+    if (typeof value === 'number') {
+      return value % 1 === 0 ? value.toString() : value.toFixed(1).replace(/\.?0+$/, '');
+    }
+    return value;
+  }
   constructor() {
     console.log('🏗️ GameManager constructor called');
     
@@ -606,11 +614,10 @@ class GameManager {
   updateEnemyDisplay() {
     if (!this.enemy) return;
 
-    // 🔧 統一使用開根號顯示戰力
+    // 清理敵人角色名稱 - 移除重複的戰力和攻擊力顯示
     const enemyName = document.querySelector('.enemy .character-name');
     if (enemyName) {
-      const enemyPower = GameConfigUtils.calculateEnemyCombatPower(this.enemy);
-      enemyName.textContent = `${this.enemy.emoji} ${this.enemy.getTypeName()} 攻擊${this.enemy.attack} (戰力:${enemyPower.displayPower})`;
+      enemyName.textContent = `${this.enemy.emoji} ${this.enemy.getTypeName()}`;
     }
 
     // 更新敵人血量顯示
@@ -625,28 +632,30 @@ class GameManager {
       enemyHealthFill.style.width = '100%';
     }
 
-    // 重置攻擊進度條
-    const enemyAttackFill = document.querySelector('.enemy .attack-fill');
-    if (enemyAttackFill) {
-      enemyAttackFill.style.width = '0%';
-    }
+    // Enemy attack progress bar removed for cleaner UI
   }
 
   // 🎯 修復：updatePlayerStats() 方法
   updatePlayerStats() {
-    // 🔧 統一使用開根號顯示戰力
+    // 清理角色名稱 - 移除重複的戰力顯示
     const heroName = document.querySelector('.hero .character-name');
     if (heroName) {
+      heroName.textContent = `🔨 重錘英雄`;
+    }
+    
+    // 更新戰力顯示在統計面板
+    const combatPowerDisplay = document.querySelector('.combat-power-display');
+    if (combatPowerDisplay) {
       const playerPower = GameConfigUtils.calculatePlayerCombatPower(this.player);
-      heroName.textContent = `🔨 重錘英雄 戰力:${playerPower.displayPower}`;
+      combatPowerDisplay.textContent = `戰鬥力: ${playerPower.displayPower}`;
     }
 
     // 更新統計面板 - 兩欄玩家面板
     const playerStats = document.querySelectorAll('.stats-panel .stat-value');
     if (playerStats.length >= 7) {
       // 攻擊欄 (左側)
-      playerStats[0].textContent = this.player.getEffectiveAttack().toFixed(1); // 攻擊力
-      playerStats[1].textContent = this.player.getEffectiveAttackSpeed().toFixed(2); // 攻擊速度
+      playerStats[0].textContent = this.formatStatNumber(this.player.getEffectiveAttack()); // 攻擊力
+      playerStats[1].textContent = this.formatStatNumber(this.player.getEffectiveAttackSpeed()); // 攻擊速度
       playerStats[2].textContent = (this.player.critChance * 100).toFixed(0) + '%'; // 暴擊率
       
       // 計算重錘觸發率
@@ -655,8 +664,8 @@ class GameManager {
       playerStats[3].textContent = hammerRate + '%'; // 重錘率
       
       // 防禦欄 (右側)
-      playerStats[4].textContent = this.player.getEffectiveArmor().toFixed(1); // 防禦力
-      playerStats[5].textContent = this.player.flatReduction.toFixed(0); // 固定減傷
+      playerStats[4].textContent = this.formatStatNumber(this.player.getEffectiveArmor()); // 防禦力
+      playerStats[5].textContent = this.formatStatNumber(this.player.flatReduction); // 固定減傷
       playerStats[6].textContent = (this.player.lifesteal * 100).toFixed(0) + '%'; // 生命汲取
     }
 
@@ -682,23 +691,94 @@ class GameManager {
   updateEnemyStatsPanel() {
     if (!this.enemy) return;
     
+    // 更新敵人類型標題
+    const enemyTypeName = document.querySelector('.enemy-type-name');
+    if (enemyTypeName) {
+      enemyTypeName.textContent = `${this.enemy.emoji} ${this.enemy.getTypeName ? this.enemy.getTypeName() : '未知敵人'}`;
+    }
+    
+    // 更新統計數據 (attack, attack speed, armor, special)
     const enemyStats = document.querySelectorAll('.enemy-stats-panel .stat-value');
-    if (enemyStats.length >= 6) {
-      enemyStats[0].textContent = this.enemy.attack.toFixed(1);
-      enemyStats[1].textContent = this.enemy.attackSpeed.toFixed(2);
-      enemyStats[2].textContent = (this.enemy.armor || this.enemy.defense || 0).toFixed(1);
-      enemyStats[3].textContent = this.enemy.getTypeName ? this.enemy.getTypeName() : 'Unknown';
-      
-      // 敵人戰力
-      const enemyPower = GameConfigUtils.calculateEnemyCombatPower(this.enemy);
-      enemyStats[4].textContent = enemyPower.displayPower;
+    if (enemyStats.length >= 4) {
+      enemyStats[0].textContent = this.formatStatNumber(this.enemy.attack);
+      enemyStats[1].textContent = this.formatStatNumber(this.enemy.attackSpeed);
+      enemyStats[2].textContent = this.formatStatNumber(this.enemy.armor || this.enemy.defense || 0);
       
       // 特殊特性
       let traits = [];
       if (this.enemy.isStunned) traits.push('眩暈');
       if (this.enemy.specialAbilities) traits.push(...this.enemy.specialAbilities);
-      enemyStats[5].textContent = traits.length > 0 ? traits.join(', ') : 'None';
+      enemyStats[3].textContent = traits.length > 0 ? traits.join(', ') : '無';
     }
+    
+    // 更新敵人戰力顯示在標題區域
+    const enemyCombatPowerDisplay = document.querySelector('.enemy-combat-power-display');
+    if (enemyCombatPowerDisplay) {
+      const enemyPower = GameConfigUtils.calculateEnemyCombatPower(this.enemy);
+      enemyCombatPowerDisplay.textContent = `戰鬥力: ${enemyPower.displayPower}`;
+    }
+    
+    // 更新敵人類型提示框內容
+    this.updateEnemyTypeTooltip();
+  }
+  
+  // 🎯 新增：更新敵人類型提示內容
+  updateEnemyTypeTooltip() {
+    if (!this.enemy) return;
+    
+    // 根據敵人類型生成說明
+    const typeName = this.enemy.getTypeName ? this.enemy.getTypeName() : '未知';
+    let description = '敵人類型說明：';
+    
+    // 根據敵人屬性分析特點
+    const hp = this.enemy.maxHp;
+    const attack = this.enemy.attack;
+    const speed = this.enemy.attackSpeed;
+    const armor = this.enemy.armor || this.enemy.defense || 0;
+    
+    if (speed > 1.5) description += '高攻速';
+    else if (speed < 0.8) description += '低攻速';
+    else description += '中等攻速';
+    
+    if (hp > 120) description += '、高血量';
+    else if (hp < 80) description += '、低血量';
+    else description += '、中等血量';
+    
+    if (attack > 15) description += '、高攻擊';
+    else if (attack < 10) description += '、低攻擊';
+    else description += '、中等攻擊';
+    
+    if (armor > 25) description += '、高防禦';
+    else if (armor < 15) description += '、低防禦';
+    else description += '、中等防禦';
+    
+    // 動態更新CSS內容
+    const style = document.createElement('style');
+    style.id = 'enemy-tooltip-style';
+    
+    // 移除舊的樣式
+    const oldStyle = document.getElementById('enemy-tooltip-style');
+    if (oldStyle) oldStyle.remove();
+    
+    style.textContent = `
+      .enemy-type-tooltip:hover::after {
+        content: "${description}";
+        position: absolute;
+        bottom: 25px;
+        right: 0;
+        background: rgba(0, 0, 0, 0.95);
+        color: white;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        white-space: nowrap;
+        z-index: 1000;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      }
+    `;
+    
+    document.head.appendChild(style);
   }
 
   // duplicate updatePlayerStats removed; using the unified implementation above

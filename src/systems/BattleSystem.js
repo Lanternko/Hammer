@@ -618,7 +618,7 @@ class BattleSystem {
     // 更新敵人名稱和狀態
     const enemyName = document.querySelector('.enemy .character-name');
     if (enemyName && this.enemy) {
-      let nameText = `${this.enemy.emoji} ${this.enemy.getTypeName()} 攻擊${this.enemy.attack}`;
+      let nameText = `${this.enemy.emoji} ${this.enemy.getTypeName()}`;
       if (this.enemy.isStunned) {
         nameText += ' 😵💫';
       }

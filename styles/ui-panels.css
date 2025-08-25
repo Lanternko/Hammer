@@ -53,13 +53,36 @@
     flex: 1;
 }
 
-.column-header {
-    font-size: 14px;
+/* 玩家統計面板標題 */
+.stats-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(78, 205, 196, 0.3);
+}
+
+.player-stats-name {
+    font-size: 16px;
     font-weight: bold;
     color: #4ecdc4;
-    margin-bottom: 10px;
-    padding-bottom: 5px;
-    border-bottom: 1px solid rgba(78, 205, 196, 0.2);
+}
+
+/* 戰鬥力顯示在右側 */
+.combat-power-display {
+    font-size: 14px;
+    font-weight: bold;
+    color: #ffd700;
+    background: rgba(255, 215, 0, 0.1);
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+/* 保留但隱藏的欄位標題 */
+.column-header {
+    display: none; /* 隱藏冗餘的欄位標題 */
 }
 
 /* 防禦提示框 */
@@ -82,8 +105,7 @@
     content: "有效血量計算：\A 生命值 ÷ (1 - 護甲減傷率)\A \A 傷害計算順序：\A 1. 護甲減傷：護甲/(護甲+100)\A 2. 扣除固定減傷\A 3. 最終傷害不低於零";
     position: absolute;
     bottom: 25px;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
     background: rgba(0, 0, 0, 0.95);
     color: white;
     padding: 12px;
@@ -112,9 +134,67 @@
     z-index: 100;
 }
 
-.enemy-stats-panel .stats-title {
-    color: #ff6b6b;
+/* 敵人類型標題 */
+.enemy-type-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
     border-bottom: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+.enemy-title-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.enemy-type-name {
+    font-size: 16px;
+    font-weight: bold;
+    color: #ff6b6b;
+}
+
+.enemy-type-tooltip {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.2);
+    color: #ff6b6b;
+    border-radius: 50%;
+    text-align: center;
+    font-size: 12px;
+    line-height: 16px;
+    cursor: help;
+    position: relative;
+}
+
+/* 敵人戰鬥力顯示 */
+.enemy-combat-power-display {
+    font-size: 14px;
+    font-weight: bold;
+    color: #ffd700;
+    background: rgba(255, 215, 0, 0.1);
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.enemy-type-tooltip:hover::after {
+    content: "敵人類型說明將顯示在此";
+    position: absolute;
+    bottom: 25px;
+    left: 0;
+    background: rgba(0, 0, 0, 0.95);
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 /* 戰鬥日誌 (保留供其他地方使用) */

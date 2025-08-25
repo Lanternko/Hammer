@@ -13,7 +13,6 @@ export default class UIManager {
     this.enemyName = document.querySelector('.enemy .character-name');
     this.enemyHpFill = document.querySelector('.enemy .health-fill');
     this.enemyHpText = document.querySelector('.enemy .health-text');
-    this.enemyAttackFill = document.querySelector('.enemy .attack-fill');
 
     this.combatLog = document.querySelector('.combat-log .log-title');
   }
@@ -46,12 +45,9 @@ export default class UIManager {
     this.enemyHpFill.style.width = `${enemyHpPercent}%`;
     this.enemyHpText.textContent = `${Math.ceil(enemy.hp)} / ${enemy.maxHp}`;
 
-    // 更新攻擊進度條
+    // 更新玩家攻擊進度條
     const playerAttackPercent = (player.currentFrame / player.attackFrame) * 100;
     this.heroAttackFill.style.width = `${playerAttackPercent}%`;
-    
-    const enemyAttackPercent = (enemy.currentFrame / enemy.attackFrame) * 100;
-    this.enemyAttackFill.style.width = `${enemyAttackPercent}%`;
   }
   
   // 更新回合標題
