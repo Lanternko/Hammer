@@ -295,7 +295,15 @@ class GameUtils {
     const start = performance.now();
     const result = fn();
     const end = performance.now();
-    console.log(`⚡ ${name} 執行時間: ${(end - start).toFixed(2)}ms`);
+    try {
+      // Lazy import to avoid circular deps if any
+      const cfg = window && window.GAME_CONFIG ? window.GAME_CONFIG : null;
+      if (cfg && cfg.DEBUG && cfg.DEBUG.ENABLED) {
+        console.log(`⚡ ${name} 執行時間: ${(end - start).toFixed(2)}ms`);
+      }
+    } catch (_) {
+      // no-op
+    }
     return result;
   }
 
@@ -303,7 +311,14 @@ class GameUtils {
     const start = performance.now();
     const result = await fn();
     const end = performance.now();
-    console.log(`⚡ ${name} 執行時間: ${(end - start).toFixed(2)}ms`);
+    try {
+      const cfg = window && window.GAME_CONFIG ? window.GAME_CONFIG : null;
+      if (cfg && cfg.DEBUG && cfg.DEBUG.ENABLED) {
+        console.log(`⚡ ${name} 執行時間: ${(end - start).toFixed(2)}ms`);
+      }
+    } catch (_) {
+      // no-op
+    }
     return result;
   }
 

@@ -180,7 +180,9 @@ class BattleSystem {
       console.log(`🔧 [DEBUG] 戰鬥速度設定: ${speed}x, deltaTime: ${this.deltaTime.toFixed(3)}`);
     }
     
-    console.log(`⚡ 戰鬥速度設定為 ${speed}x`);
+    if (GAME_CONFIG.DEBUG.ENABLED) {
+      console.log(`⚡ 戰鬥速度設定為 ${speed}x`);
+    }
   }
 
   start() {
@@ -201,7 +203,9 @@ class BattleSystem {
     if (this.uiManager && typeof this.uiManager.createSpeedControlUI === 'function') {
       this.uiManager.createSpeedControlUI();
     } else {
-      console.warn('⚠️ UI Manager not properly initialized or missing createSpeedControlUI method');
+      if (GAME_CONFIG.DEBUG.ENABLED) {
+        console.warn('⚠️ UI Manager not properly initialized or missing createSpeedControlUI method');
+      }
       // 創建一個簡單的速度控制作為後備
       this.createFallbackSpeedControl();
     }
@@ -428,7 +432,9 @@ class BattleSystem {
       if (this.enemy.stunDuration <= 0) {
         this.enemy.isStunned = false;
         this.enemy.currentFrame = 0;
-        console.log('👹 敵人眩暈結束');
+        if (GAME_CONFIG.DEBUG.ENABLED) {
+          console.log('👹 敵人眩暈結束');
+        }
       }
     }
 
@@ -464,11 +470,13 @@ class BattleSystem {
     const finalDamage = damage * (1 - damageReduction);
     const reducedDmg = Math.max(1, Math.floor(finalDamage)); // 確保至少造成1點傷害
     
-    console.log(`🔧 傷害計算詳情:`);
-    console.log(`   原始傷害: ${damage}`);
-    console.log(`   敵人護甲: ${enemyArmor}`);
-    console.log(`   減傷率: ${(damageReduction * 100).toFixed(1)}%`);
-    console.log(`   最終傷害: ${finalDamage.toFixed(1)} → ${reducedDmg}`);
+    if (GAME_CONFIG.DEBUG.ENABLED) {
+      console.log(`🔧 傷害計算詳情:`);
+      console.log(`   原始傷害: ${damage}`);
+      console.log(`   敵人護甲: ${enemyArmor}`);
+      console.log(`   減傷率: ${(damageReduction * 100).toFixed(1)}%`);
+      console.log(`   最終傷害: ${finalDamage.toFixed(1)} → ${reducedDmg}`);
+    }
     
     this.enemy.hp = Math.max(0, this.enemy.hp - reducedDmg);
     
@@ -485,13 +493,17 @@ class BattleSystem {
         this.enemy.isStunned = true;
         this.enemy.stunDuration = stunDuration;
         this.enemy.currentFrame = 0;
-        console.log(`😵 敵人被重錘眩暈 ${stunDuration} 秒！`);
+        if (GAME_CONFIG.DEBUG.ENABLED) {
+          console.log(`😵 敵人被重錘眩暈 ${stunDuration} 秒！`);
+        }
       }
     }
     
     // 檢查敵人是否死亡
     if (this.enemy.hp <= 0) {
-      console.log('🏆 敵人被擊敗！');
+      if (GAME_CONFIG.DEBUG.ENABLED) {
+        console.log('🏆 敵人被擊敗！');
+      }
       this.endBattle(true);
       return;
     }

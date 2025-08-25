@@ -684,37 +684,7 @@ class GameManager {
     }
   }
 
-  updatePlayerStats() {
-    // 🎯 更新角色名稱顯示血量和戰力
-    const heroName = document.querySelector('.hero .character-name');
-    if (heroName) {
-      const playerPower = GameConfigUtils.calculatePlayerCombatPower(this.player);
-      heroName.textContent = `🔨 重錘英雄 (${Math.round(this.player.hp)}/${this.player.maxHp}) 戰力:${playerPower.displayPower}`;
-    }
-
-    // 更新統計面板
-    const stats = document.querySelectorAll('.stat-value');
-    if (stats.length >= 4) {
-      stats[0].textContent = this.player.getEffectiveAttack().toFixed(1);
-      stats[1].textContent = this.player.getEffectiveAttackSpeed().toFixed(2);
-      stats[2].textContent = this.player.getEffectiveArmor().toFixed(1);
-      stats[3].textContent = (this.player.critChance * 100).toFixed(0) + '%';
-    }
-
-    // 更新玩家血條
-    const heroHealthFill = document.querySelector('.hero .health-fill');
-    const heroHealthText = document.querySelector('.hero .health-text');
-    if (heroHealthFill && heroHealthText) {
-      const hpPercent = Math.max(0, (this.player.hp / this.player.maxHp) * 100);
-      heroHealthFill.style.width = `${hpPercent}%`;
-      heroHealthText.textContent = `${Math.round(this.player.hp)} / ${this.player.maxHp}`;
-    }
-
-    // 更新 Buff 显示
-    if (this.enhancedUI) {
-      this.enhancedUI.updateBuffDisplay(this.player);
-    }
-  }
+  // duplicate updatePlayerStats removed; using the unified implementation above
 }
 
 // 增強的UI管理器類（與戰力系統整合）

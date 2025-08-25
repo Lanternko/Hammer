@@ -156,7 +156,9 @@ export function generateUpgradeOptions(currentLevel) {
     }));
     
   } catch (error) {
-    console.error('❌ 生成升級選項錯誤:', error);
+    if (typeof GAME_CONFIG !== 'undefined' && GAME_CONFIG.DEBUG && GAME_CONFIG.DEBUG.ENABLED) {
+      console.error('❌ 生成升級選項錯誤:', error);
+    }
     
     // 🔧 備用方案：返回基本升級選項
     return [
@@ -267,7 +269,9 @@ export function getUpgradeRarityColor(rarity) {
     return colors[rarity] || '#FFFFFF';
     
   } catch (error) {
-    console.error('❌ 獲取稀有度顏色錯誤:', error);
+    if (typeof GAME_CONFIG !== 'undefined' && GAME_CONFIG.DEBUG && GAME_CONFIG.DEBUG.ENABLED) {
+      console.error('❌ 獲取稀有度顏色錯誤:', error);
+    }
     return '#FFFFFF';
   }
 }
@@ -286,7 +290,9 @@ export function getUpgradeRarityText(rarity) {
     return texts[rarity] || '未知';
     
   } catch (error) {
-    console.error('❌ 獲取稀有度文字錯誤:', error);
+    if (typeof GAME_CONFIG !== 'undefined' && GAME_CONFIG.DEBUG && GAME_CONFIG.DEBUG.ENABLED) {
+      console.error('❌ 獲取稀有度文字錯誤:', error);
+    }
     return '未知';
   }
 }
@@ -308,15 +314,21 @@ export function validateUpgradeData() {
     });
     
     if (missingFields.length > 0) {
-      console.warn('⚠️ 升級數據不完整:', missingFields);
+      if (typeof GAME_CONFIG !== 'undefined' && GAME_CONFIG.DEBUG && GAME_CONFIG.DEBUG.ENABLED) {
+        console.warn('⚠️ 升級數據不完整:', missingFields);
+      }
       return false;
     }
     
-    console.log('✅ 升級數據完整性檢查通過');
+    if (typeof GAME_CONFIG !== 'undefined' && GAME_CONFIG.DEBUG && GAME_CONFIG.DEBUG.ENABLED) {
+      console.log('✅ 升級數據完整性檢查通過');
+    }
     return true;
     
   } catch (error) {
-    console.error('❌ 升級數據檢查錯誤:', error);
+    if (typeof GAME_CONFIG !== 'undefined' && GAME_CONFIG.DEBUG && GAME_CONFIG.DEBUG.ENABLED) {
+      console.error('❌ 升級數據檢查錯誤:', error);
+    }
     return false;
   }
 }
@@ -326,4 +338,6 @@ setTimeout(() => {
   validateUpgradeData();
 }, 100);
 
-console.log('✅ upgradeRewards.js 修復版載入完成');
+if (typeof GAME_CONFIG !== 'undefined' && GAME_CONFIG.DEBUG && GAME_CONFIG.DEBUG.ENABLED) {
+  console.log('✅ upgradeRewards.js 修復版載入完成');
+}
