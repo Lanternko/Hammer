@@ -8,6 +8,7 @@
     align-items: center;
     padding: 0 50px;
     position: relative;
+    margin-bottom: 120px; /* Push character cards up to avoid overlapping stats panels */
 }
 
 /* 角色卡片 */

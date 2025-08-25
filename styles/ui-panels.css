@@ -43,7 +43,81 @@
     color: #ffd700;
 }
 
-/* 戰鬥日誌 */
+/* 兩欄統計佈局 */
+.stats-columns {
+    display: flex;
+    gap: 20px;
+}
+
+.stats-column {
+    flex: 1;
+}
+
+.column-header {
+    font-size: 14px;
+    font-weight: bold;
+    color: #4ecdc4;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgba(78, 205, 196, 0.2);
+}
+
+/* 防禦提示框 */
+.tooltip-trigger {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.2);
+    color: #4ecdc4;
+    border-radius: 50%;
+    text-align: center;
+    font-size: 12px;
+    line-height: 16px;
+    cursor: help;
+    margin-left: 5px;
+    position: relative;
+}
+
+.tooltip-trigger:hover::after {
+    content: "有效血量計算：\A 生命值 ÷ (1 - 護甲減傷率)\A \A 傷害計算順序：\A 1. 護甲減傷：護甲/(護甲+100)\A 2. 扣除固定減傷\A 3. 最終傷害不低於零";
+    position: absolute;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.95);
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    white-space: pre-line;
+    z-index: 1000;
+    min-width: 200px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* 敵人統計面板 */
+.enemy-stats-panel {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 20px;
+    color: white;
+    min-width: 250px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+}
+
+.enemy-stats-panel .stats-title {
+    color: #ff6b6b;
+    border-bottom: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+/* 戰鬥日誌 (保留供其他地方使用) */
 .combat-log {
     position: fixed;
     bottom: 20px;

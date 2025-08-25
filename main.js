@@ -2,32 +2,18 @@
 import GameManager from './src/game/GameManager.js';
 import { GAME_CONFIG, initializeGameConfig } from './src/config/GameConfig.js';
 
-console.log('📁 main.js loaded');
-console.log('⚙️ Game config loaded:', GAME_CONFIG ? 'Config ready' : 'Config missing');
-console.log('🔍 GameManager imported:', GameManager);
-console.log('🔍 GameManager is constructor?', typeof GameManager === 'function');
 
 // Initialize game when page loads
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('🎮 Initializing Combat Arena...');
-  
   try {
-    // 首先初始化並驗證配置
     const configValid = initializeGameConfig();
     if (!configValid) {
       throw new Error('Game configuration validation failed');
     }
     
-    // Create and start game
-    console.log('🏗️ Creating GameManager instance...');
     const game = new GameManager();
-    console.log('✅ GameManager created successfully:', game);
-    
-    // Start game after a short delay to ensure UI is ready
     setTimeout(() => {
-      console.log('🚀 Starting game...');
       game.startGame();
-      console.log('✅ Game started successfully');
     }, 100);
     
     // Make game globally accessible for debugging
@@ -83,13 +69,3 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Handle page visibility changes (pause/resume)
-document.addEventListener('visibilitychange', () => {
-  if (window.game && window.game.battleSystem) {
-    if (document.hidden) {
-      console.log('⏸️ Game paused (tab hidden)');
-    } else {
-      console.log('▶️ Game resumed (tab visible)');
-    }
-  }
-});

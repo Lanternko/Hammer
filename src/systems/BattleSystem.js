@@ -46,82 +46,19 @@ class BattleSystem {
     }
   }
 
-  // 創建戰鬥信息面板
+  // 創建戰鬥信息面板 - 簡化版本 (不再需要重複的戰鬥數據)
   initializeCombatInfo() {
-    const combatInfo = document.querySelector('.combat-log');
-    if (combatInfo) {
-      // 清空舊內容
-      const existingEntries = combatInfo.querySelectorAll('.log-entry');
-      existingEntries.forEach(entry => entry.remove());
-      
-      // 修改標題
-      const logTitle = combatInfo.querySelector('.log-title');
-      if (logTitle) {
-        logTitle.textContent = '📊 戰鬥數據';
-      }
-      
-      // 創建實時數據顯示區域
-      this.createRealTimeStats();
-    }
+    // 戰鬥數據現在顯示在專門的統計面板中，這裡不再需要重複顯示
   }
 
   createRealTimeStats() {
-    const combatInfo = document.querySelector('.combat-log');
-    if (!combatInfo) return;
-    
-    const logTitle = combatInfo.querySelector('.log-title');
-    
-    const statsContainer = document.createElement('div');
-    statsContainer.id = 'realTimeStats';
-    statsContainer.style.cssText = `
-      padding: 10px 0;
-      font-size: 13px;
-      line-height: 1.4;
-    `;
-    
-    logTitle.insertAdjacentElement('afterend', statsContainer);
-    this.updateRealTimeStats();
+    // 實時戰鬥數據現在顯示在專門的左右統計面板中
+    // 不再需要在戰鬥日誌區域重複顯示
   }
 
   updateRealTimeStats() {
-    const statsContainer = document.getElementById('realTimeStats');
-    if (!statsContainer) return;
-    
-    // 🎯 使用新的戰力計算系統
-    const playerPower = GameConfigUtils.calculatePlayerCombatPower(this.player);
-    const enemyPower = GameConfigUtils.calculateEnemyCombatPower(this.enemy);
-    
-    // 計算預期戰鬥時間
-    const expectedBattleTime = this.calculateExpectedBattleTime(
-      parseFloat(playerPower.dps), 
-      parseFloat(enemyPower.dps), 
-      parseFloat(playerPower.ehp), 
-      parseFloat(enemyPower.ehp)
-    );
-    
-    const colors = GAME_CONFIG.UI_CONFIG.COLORS;
-    
-    statsContainer.innerHTML = `
-      <div style="margin-bottom: 12px; padding: 8px; background: rgba(78, 205, 196, 0.1); border-radius: 8px; border-left: 3px solid ${colors.PRIMARY};">
-        <div style="color: ${colors.PRIMARY}; font-weight: bold; margin-bottom: 6px;">👤 玩家數據</div>
-        <div>⚔️ 戰力: <span style="color: ${colors.GOLD}; font-weight: bold;">${playerPower.displayPower}</span> (DPS: ${playerPower.dps})</div>
-        <div>🛡️ 護甲減傷: <span style="color: ${colors.PRIMARY}; font-weight: bold;">${this.getArmorReduction()}%</span> | 固減: <span style="color: ${colors.PRIMARY}; font-weight: bold;">${this.player.flatReduction}</span></div>
-        <div>💥 暴擊率: <span style="color: ${colors.SECONDARY}; font-weight: bold;">${(this.player.critChance * 100).toFixed(1)}%</span> | 🔨 重錘率: <span style="color: ${colors.SECONDARY}; font-weight: bold;">${this.getHammerRate()}%</span></div>
-      </div>
-      
-      <div style="margin-bottom: 12px; padding: 8px; background: rgba(255, 107, 107, 0.1); border-radius: 8px; border-left: 3px solid ${colors.SECONDARY};">
-        <div style="color: ${colors.SECONDARY}; font-weight: bold; margin-bottom: 6px;">👹 敵人數據</div>
-        <div>⚔️ 戰力: <span style="color: ${colors.GOLD}; font-weight: bold;">${enemyPower.displayPower}</span> (DPS: ${enemyPower.dps})</div>
-        <div>🛡️ 防禦力: <span style="color: ${colors.SECONDARY}; font-weight: bold;">${this.enemy.armor || this.enemy.defense || 0}</span></div>
-        <div>⚡ 攻速: <span style="color: #ffb347; font-weight: bold;">${this.enemy.attackSpeed.toFixed(2)}</span> | 🎯 類型: <span style="color: white; font-weight: bold;">${this.enemy.emoji} ${this.enemy.name}</span></div>
-      </div>
-      
-      <div style="padding: 8px; background: rgba(255, 215, 0, 0.1); border-radius: 8px; border-left: 3px solid ${colors.GOLD};">
-        <div style="color: ${colors.GOLD}; font-weight: bold; margin-bottom: 6px;">⏱️ 戰力對比</div>
-        <div>優勢方: <span style="color: ${this.getCombatAdvantageColor(playerPower.rawPower, enemyPower.rawPower)}; font-weight: bold;">${this.getCombatAdvantageText(playerPower.rawPower, enemyPower.rawPower)}</span></div>
-        <div>預估時長: <span style="color: ${colors.GOLD}; font-weight: bold;">${expectedBattleTime}秒</span></div>
-      </div>
-    `;
+    // 實時數據更新現在通過 GameManager.updatePlayerStats() 和 updateEnemyStatsPanel() 處理
+    // 不再需要重複的戰鬥數據顯示
   }
 
   // 🧮 戰力對比輔助方法

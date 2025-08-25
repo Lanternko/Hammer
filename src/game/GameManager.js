@@ -638,16 +638,26 @@ class GameManager {
     const heroName = document.querySelector('.hero .character-name');
     if (heroName) {
       const playerPower = GameConfigUtils.calculatePlayerCombatPower(this.player);
-      heroName.textContent = `🔨 重錘英雄 (${Math.round(this.player.hp)}/${this.player.maxHp}) 戰力:${playerPower.displayPower}`;
+      heroName.textContent = `🔨 重錘英雄 戰力:${playerPower.displayPower}`;
     }
 
-    // 更新統計面板
-    const stats = document.querySelectorAll('.stat-value');
-    if (stats.length >= 4) {
-      stats[0].textContent = this.player.getEffectiveAttack().toFixed(1);
-      stats[1].textContent = this.player.getEffectiveAttackSpeed().toFixed(2);
-      stats[2].textContent = this.player.getEffectiveArmor().toFixed(1);
-      stats[3].textContent = (this.player.critChance * 100).toFixed(0) + '%';
+    // 更新統計面板 - 兩欄玩家面板
+    const playerStats = document.querySelectorAll('.stats-panel .stat-value');
+    if (playerStats.length >= 7) {
+      // 攻擊欄 (左側)
+      playerStats[0].textContent = this.player.getEffectiveAttack().toFixed(1); // 攻擊力
+      playerStats[1].textContent = this.player.getEffectiveAttackSpeed().toFixed(2); // 攻擊速度
+      playerStats[2].textContent = (this.player.critChance * 100).toFixed(0) + '%'; // 暴擊率
+      
+      // 計算重錘觸發率
+      const hammerRate = this.player.hammerEffects?.mastery ? 
+        (this.player.hammerEffects?.weight ? 25 : 15) : 0;
+      playerStats[3].textContent = hammerRate + '%'; // 重錘率
+      
+      // 防禦欄 (右側)
+      playerStats[4].textContent = this.player.getEffectiveArmor().toFixed(1); // 防禦力
+      playerStats[5].textContent = this.player.flatReduction.toFixed(0); // 固定減傷
+      playerStats[6].textContent = (this.player.lifesteal * 100).toFixed(0) + '%'; // 生命汲取
     }
 
     // 更新玩家血條
@@ -662,6 +672,32 @@ class GameManager {
     // 更新 Buff 显示
     if (this.enhancedUI) {
       this.enhancedUI.updateBuffDisplay(this.player);
+    }
+    
+    // 更新敵人統計面板
+    this.updateEnemyStatsPanel();
+  }
+
+  // 🎯 新增：更新敵人統計面板
+  updateEnemyStatsPanel() {
+    if (!this.enemy) return;
+    
+    const enemyStats = document.querySelectorAll('.enemy-stats-panel .stat-value');
+    if (enemyStats.length >= 6) {
+      enemyStats[0].textContent = this.enemy.attack.toFixed(1);
+      enemyStats[1].textContent = this.enemy.attackSpeed.toFixed(2);
+      enemyStats[2].textContent = (this.enemy.armor || this.enemy.defense || 0).toFixed(1);
+      enemyStats[3].textContent = this.enemy.getTypeName ? this.enemy.getTypeName() : 'Unknown';
+      
+      // 敵人戰力
+      const enemyPower = GameConfigUtils.calculateEnemyCombatPower(this.enemy);
+      enemyStats[4].textContent = enemyPower.displayPower;
+      
+      // 特殊特性
+      let traits = [];
+      if (this.enemy.isStunned) traits.push('眩暈');
+      if (this.enemy.specialAbilities) traits.push(...this.enemy.specialAbilities);
+      enemyStats[5].textContent = traits.length > 0 ? traits.join(', ') : 'None';
     }
   }
 

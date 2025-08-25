@@ -706,11 +706,9 @@ export class BattleUIManager {
     
     resultsDiv.appendChild(contentDiv);
     
-    // 點擊關閉事件
+    // 點擊任何地方關閉並繼續
     resultsDiv.addEventListener('click', (e) => {
-      if (e.target === resultsDiv || e.target === contentDiv) {
-        resultsDiv.remove();
-      }
+      resultsDiv.remove();
     });
     
     document.body.appendChild(resultsDiv);
@@ -791,7 +789,7 @@ export class BattleUIManager {
       </div>
       
       <div style="text-align: center;">
-        <button onclick="document.getElementById('pauseButton').click()" style="
+        <button id="continueButton" style="
           padding: 18px 35px;
           background: linear-gradient(45deg, #4ecdc4, #45b7b8);
           color: white;
@@ -810,6 +808,18 @@ export class BattleUIManager {
     
     panel.appendChild(contentDiv);
     document.body.appendChild(panel);
+    
+    // Add event listener for the continue button
+    const continueButton = panel.querySelector('#continueButton');
+    if (continueButton) {
+      continueButton.addEventListener('click', () => {
+        panel.remove();
+        const pauseButton = document.getElementById('pauseButton');
+        if (pauseButton) {
+          pauseButton.click();
+        }
+      });
+    }
   }
   
   // Helper methods
@@ -829,10 +839,15 @@ export class BattleUIManager {
       backdrop-filter: blur(10px);
     `;
     
-    // Close on click outside
+    // Close on click outside and resume game
     panel.addEventListener('click', (e) => {
       if (e.target === panel) {
         panel.remove();
+        // Resume the game by clicking the pause button
+        const pauseButton = document.getElementById('pauseButton');
+        if (pauseButton) {
+          pauseButton.click();
+        }
       }
     });
     

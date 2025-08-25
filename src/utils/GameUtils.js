@@ -23,17 +23,6 @@ class GameUtils {
     return texts[rarity] || '未知';
   }
 
-  static getRarityWeight(rarity) {
-    const weights = {
-      'common': 1.0,
-      'uncommon': 0.7,
-      'rare': 0.4,
-      'epic': 0.2,
-      'legendary': 0.1
-    };
-    return weights[rarity] || 1.0;
-  }
-
   // 📊 數值格式化工具
   static formatNumber(num, decimals = 1) {
     if (typeof num !== 'number') return '0';
@@ -51,19 +40,6 @@ class GameUtils {
     return (value * 100).toFixed(decimals) + '%';
   }
 
-  static formatTime(seconds) {
-    if (seconds < 60) {
-      return seconds.toFixed(1) + '秒';
-    } else if (seconds < 3600) {
-      const minutes = Math.floor(seconds / 60);
-      const remainingSeconds = Math.floor(seconds % 60);
-      return `${minutes}分${remainingSeconds}秒`;
-    } else {
-      const hours = Math.floor(seconds / 3600);
-      const minutes = Math.floor((seconds % 3600) / 60);
-      return `${hours}小時${minutes}分鐘`;
-    }
-  }
 
   // 🎲 隨機數工具
   static randomBetween(min, max) {
@@ -167,51 +143,9 @@ class GameUtils {
     return result;
   }
 
-  // ⏱️ 防抖和節流
-  static debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-      const later = () => {
-        clearTimeout(timeout);
-        func(...args);
-      };
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-    };
-  }
-
-  static throttle(func, limit) {
-    let inThrottle;
-    return function executedFunction(...args) {
-      if (!inThrottle) {
-        func.apply(this, args);
-        inThrottle = true;
-        setTimeout(() => inThrottle = false, limit);
-      }
-    };
-  }
 
   // 🎨 顏色工具
-  static hexToRgba(hex, alpha = 1) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  }
 
-  static interpolateColor(color1, color2, factor) {
-    if (factor <= 0) return color1;
-    if (factor >= 1) return color2;
-    
-    const c1 = this.hexToRgb(color1);
-    const c2 = this.hexToRgb(color2);
-    
-    const r = Math.round(c1.r + (c2.r - c1.r) * factor);
-    const g = Math.round(c1.g + (c2.g - c1.g) * factor);
-    const b = Math.round(c1.b + (c2.b - c1.b) * factor);
-    
-    return `rgb(${r}, ${g}, ${b})`;
-  }
 
   static hexToRgb(hex) {
     const r = parseInt(hex.slice(1, 3), 16);
@@ -286,37 +220,6 @@ class GameUtils {
     });
   }
 
-  // ⚡ 性能工具
-  static measurePerformance(name, fn) {
-    const start = performance.now();
-    const result = fn();
-    const end = performance.now();
-    try {
-      // Lazy import to avoid circular deps if any
-      const cfg = window && window.GAME_CONFIG ? window.GAME_CONFIG : null;
-      if (cfg && cfg.DEBUG && cfg.DEBUG.ENABLED) {
-        console.log(`⚡ ${name} 執行時間: ${(end - start).toFixed(2)}ms`);
-      }
-    } catch (_) {
-      // no-op
-    }
-    return result;
-  }
-
-  static async measureAsyncPerformance(name, fn) {
-    const start = performance.now();
-    const result = await fn();
-    const end = performance.now();
-    try {
-      const cfg = window && window.GAME_CONFIG ? window.GAME_CONFIG : null;
-      if (cfg && cfg.DEBUG && cfg.DEBUG.ENABLED) {
-        console.log(`⚡ ${name} 執行時間: ${(end - start).toFixed(2)}ms`);
-      }
-    } catch (_) {
-      // no-op
-    }
-    return result;
-  }
 
   // 🔍 驗證工具
   static isValidNumber(value, min = -Infinity, max = Infinity) {
@@ -345,20 +248,6 @@ class GameUtils {
     return Math.min(1, currentExp / expToNext);
   }
 
-  static getRelativeTime(timestamp) {
-    const now = Date.now();
-    const diff = now - timestamp;
-    
-    if (diff < 1000) return '剛才';
-    if (diff < 60000) return Math.floor(diff / 1000) + '秒前';
-    if (diff < 3600000) return Math.floor(diff / 60000) + '分鐘前';
-    if (diff < 86400000) return Math.floor(diff / 3600000) + '小時前';
-    return Math.floor(diff / 86400000) + '天前';
-  }
-
-  static generateId(prefix = 'id') {
-    return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
 
   // 🌐 瀏覽器檢測
   static getBrowserInfo() {
